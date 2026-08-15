@@ -6,6 +6,7 @@
 #include <stdexcept> // std::invalid_argument
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -157,6 +158,12 @@ public:
   }
   virtual void apply(float* data, long size) = 0;
 
+  /// \brief Look up a named activation singleton.
+  ///
+  /// Construction-time only (called from LSTM/ConvNet/WaveNet layer constructors while a model
+  /// is being staged) -- never called from the real-time process() path of any architecture in
+  /// this codebase, so the mutex this and the setters below take is never touched by the audio
+  /// thread.
   static Ptr get_activation(const std::string name);
   static Ptr get_activation(const ActivationConfig& config);
   static Ptr get_activation(const nlohmann::json& activation_config);
@@ -168,6 +175,16 @@ public:
 
 protected:
   static std::unordered_map<std::string, Ptr> _activations;
+  // Guards _activations (and the *_bak backups in activations.cpp) against concurrent access.
+  // This state is process-wide (static), not per-model-instance: get_activation() runs on
+  // whichever thread constructs a model (this project's background staging thread), and
+  // enable_fast_tanh()/enable_lut() can run on the main thread (e.g. a plugin instance's
+  // constructor) at the same wall-clock time as a *different*, already-running instance's
+  // staging thread is mid-construction -- an entirely ordinary multi-instance/parallel-bus
+  // scenario, not a contrived one, and previously an unsynchronized data race on a
+  // std::unordered_map (undefined behavior). Never taken from any real-time process() path
+  // (see get_activation()'s doc comment above), so this adds no audio-thread lock.
+  static std::mutex _activations_mutex;
 };
 
 // identity function activation--"do nothing"

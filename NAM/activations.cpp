@@ -40,8 +40,11 @@ nam::activations::Activation::Ptr tanh_bak = nullptr;
 nam::activations::Activation::Ptr sigmoid_bak = nullptr;
 nam::activations::Activation::Ptr silu_bak = nullptr;
 
+std::mutex nam::activations::Activation::_activations_mutex;
+
 nam::activations::Activation::Ptr nam::activations::Activation::get_activation(const std::string name)
 {
+  std::lock_guard<std::mutex> lock(_activations_mutex);
   if (_activations.find(name) == _activations.end())
     return nullptr;
 
@@ -131,6 +134,7 @@ nam::activations::ActivationConfig nam::activations::ActivationConfig::from_json
 
 nam::activations::Activation::Ptr nam::activations::Activation::get_activation(const ActivationConfig& config)
 {
+  std::lock_guard<std::mutex> lock(_activations_mutex);
   switch (config.type)
   {
     case ActivationType::Tanh: return _activations["Tanh"];
@@ -167,6 +171,7 @@ nam::activations::Activation::Ptr nam::activations::Activation::get_activation(c
 
 void nam::activations::Activation::enable_fast_tanh()
 {
+  std::lock_guard<std::mutex> lock(_activations_mutex);
   nam::activations::Activation::using_fast_tanh = true;
 
   if (_activations["Tanh"] != _activations["Fasttanh"])
@@ -178,6 +183,7 @@ void nam::activations::Activation::enable_fast_tanh()
 
 void nam::activations::Activation::disable_fast_tanh()
 {
+  std::lock_guard<std::mutex> lock(_activations_mutex);
   nam::activations::Activation::using_fast_tanh = false;
 
   if (_activations["Tanh"] == _activations["Fasttanh"])
@@ -188,6 +194,7 @@ void nam::activations::Activation::disable_fast_tanh()
 
 void nam::activations::Activation::enable_lut(std::string function_name, float min, float max, std::size_t n_points)
 {
+  std::lock_guard<std::mutex> lock(_activations_mutex);
   std::function<float(float)> fn;
   if (function_name == "Tanh")
   {
@@ -213,6 +220,7 @@ void nam::activations::Activation::enable_lut(std::string function_name, float m
 
 void nam::activations::Activation::disable_lut(std::string function_name)
 {
+  std::lock_guard<std::mutex> lock(_activations_mutex);
   if (function_name == "Tanh")
   {
     _activations["Tanh"] = tanh_bak;
