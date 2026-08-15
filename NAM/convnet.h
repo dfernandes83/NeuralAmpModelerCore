@@ -92,6 +92,20 @@ public:
   /// \return Block reference to the output
   Eigen::Block<Eigen::MatrixXf> GetOutput(const int num_frames);
 
+  /// \brief Get the entire internal output buffer
+  ///
+  /// This is intended for internal wiring between blocks (matches the Conv1D/Conv1x1/FiLM
+  /// convention elsewhere in this codebase): callers should treat the buffer as pre-allocated
+  /// storage and only consider the first num_frames columns valid for a given processing call.
+  /// Passing this directly (instead of a num_frames-limited Block, e.g. from GetOutput(int))
+  /// avoids Eigen materializing a temporary when binding to the next block's Process(const
+  /// Eigen::MatrixXf&) parameter -- the same reasoning documented on RingBuffer::Write().
+  /// \return Reference to the output buffer
+  Eigen::MatrixXf& GetOutput() { return _output; }
+
+  /// \brief Get the entire internal output buffer (const version)
+  const Eigen::MatrixXf& GetOutput() const { return _output; }
+
   /// \brief Get the number of output channels
   /// \return Number of output channels
   long get_out_channels() const;
@@ -157,6 +171,10 @@ protected:
   std::vector<ConvNetBlock> _blocks;
   std::vector<Eigen::MatrixXf> _block_vals;
   Eigen::MatrixXf _head_output; // (out_channels, num_frames)
+  // Persistent scratch buffer for process()'s input-channel-stacking step, sized once in
+  // SetMaxBufferSize() -- was a fresh Eigen::MatrixXf constructed (heap-allocated) on every
+  // single process() call; the audio thread must never allocate.
+  Eigen::MatrixXf _input_matrix; // (in_channels, maxBufferSize)
   _Head _head;
   void _verify_weights(const int channels, const std::vector<int>& dilations, const bool batchnorm,
                        const size_t actual_weights);

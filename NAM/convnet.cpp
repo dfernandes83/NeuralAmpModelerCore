@@ -161,12 +161,12 @@ void nam::convnet::_Head::process_(const Eigen::MatrixXf& input, Eigen::MatrixXf
   // Resize output to (out_channels x length)
   output.resize(out_channels, length);
 
-  // Extract input slice: (in_channels x length)
-  Eigen::MatrixXf input_slice = input.middleCols(i_start, length);
-
   // Compute output = weight * input_slice: (out_channels x in_channels) * (in_channels x length) = (out_channels x
-  // length)
-  output.noalias() = this->_weight * input_slice;
+  // length). Multiplies directly against the .middleCols() block expression -- Eigen evaluates
+  // this straight into `output` without materializing the slice into its own temporary matrix
+  // first (that intermediate copy, `Eigen::MatrixXf input_slice = input.middleCols(...)`, used to
+  // allocate on every call; this class's Process() runs on the audio thread).
+  output.noalias() = this->_weight * input.middleCols(i_start, length);
 
   // Add bias to each column: output.colwise() += bias
   // output is (out_channels x length), bias is (out_channels x 1), so colwise() += works
@@ -217,35 +217,27 @@ void nam::convnet::ConvNet::process(NAM_SAMPLE** input, NAM_SAMPLE** output, con
   // and sum outputs to each output channel (simple implementation)
   // This can be extended later for more sophisticated cross-channel processing
 
-  // Convert input buffers to matrix for first layer (stack input channels)
-  Eigen::MatrixXf input_matrix(in_channels, num_frames);
+  // Convert input buffers to matrix for first layer (stack input channels). Writes into the
+  // persistent _input_matrix (pre-sized in SetMaxBufferSize()) instead of constructing a fresh
+  // Eigen::MatrixXf here -- this runs on the audio thread every block.
   const long i_start = this->_input_buffer_offset;
   for (int ch = 0; ch < in_channels; ch++)
   {
     for (int i = 0; i < num_frames; i++)
-      input_matrix(ch, i) = this->_input_buffers[ch][i_start + i];
+      this->_input_matrix(ch, i) = this->_input_buffers[ch][i_start + i];
   }
 
   // Process through ConvNetBlock layers
   // Each block now uses Conv1D's internal buffers via Process() and GetOutput()
   for (size_t i = 0; i < this->_blocks.size(); i++)
   {
-    // Get input for this block
-    Eigen::MatrixXf block_input;
+    // Get input for this block -- pass the previous stage's persistent buffer directly (full
+    // buffer + num_frames, matching the RingBuffer::Write() convention) instead of copying it
+    // into a freshly-constructed local matrix each iteration, which used to allocate.
     if (i == 0)
-    {
-      // First block uses the input matrix
-      block_input = input_matrix;
-    }
+      this->_blocks[i].Process(this->_input_matrix, num_frames);
     else
-    {
-      // Subsequent blocks use output from previous block
-      auto prev_output = this->_blocks[i - 1].GetOutput(num_frames);
-      block_input = prev_output; // Copy to matrix
-    }
-
-    // Process block (handles Conv1D, batchnorm, and activation internally)
-    this->_blocks[i].Process(block_input, num_frames);
+      this->_blocks[i].Process(this->_blocks[i - 1].GetOutput(), num_frames);
   }
 
   // Process head for all output channels at once
@@ -311,6 +303,11 @@ void nam::convnet::ConvNet::SetMaxBufferSize(const int maxBufferSize)
   {
     block.SetMaxBufferSize(maxBufferSize);
   }
+
+  // Pre-size the input-channel-stacking scratch buffer once here (off the audio thread) so
+  // process() never needs to allocate -- see _input_matrix's declaration comment.
+  _input_matrix.resize(NumInputChannels(), maxBufferSize);
+  _input_matrix.setZero();
 }
 
 void nam::convnet::ConvNet::_update_buffers_(NAM_SAMPLE** input, const int num_frames)
