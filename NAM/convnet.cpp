@@ -11,7 +11,7 @@
 #include "registry.h"
 #include "convnet.h"
 
-nam::convnet::BatchNorm::BatchNorm(const int dim, std::vector<float>::iterator& weights)
+nam::convnet::BatchNorm::BatchNorm(const int dim, util::WeightCursor& weights)
 {
   // Extract from param buffer
   Eigen::VectorXf running_mean(dim);
@@ -19,14 +19,14 @@ nam::convnet::BatchNorm::BatchNorm(const int dim, std::vector<float>::iterator& 
   Eigen::VectorXf _weight(dim);
   Eigen::VectorXf _bias(dim);
   for (int i = 0; i < dim; i++)
-    running_mean(i) = *(weights++);
+    running_mean(i) = weights.Next();
   for (int i = 0; i < dim; i++)
-    running_var(i) = *(weights++);
+    running_var(i) = weights.Next();
   for (int i = 0; i < dim; i++)
-    _weight(i) = *(weights++);
+    _weight(i) = weights.Next();
   for (int i = 0; i < dim; i++)
-    _bias(i) = *(weights++);
-  float eps = *(weights++);
+    _bias(i) = weights.Next();
+  float eps = weights.Next();
 
   // Convert to scale & loc
   this->scale.resize(dim);
@@ -50,7 +50,7 @@ void nam::convnet::BatchNorm::process_(Eigen::MatrixXf& x, const long i_start, c
 void nam::convnet::ConvNetBlock::set_weights_(const int in_channels, const int out_channels, const int _dilation,
                                               const bool batchnorm,
                                               const activations::ActivationConfig& activation_config, const int groups,
-                                              std::vector<float>::iterator& weights)
+                                              util::WeightCursor& weights)
 {
   this->_batchnorm = batchnorm;
   // HACK 2 kernel
@@ -130,7 +130,7 @@ long nam::convnet::ConvNetBlock::get_out_channels() const
   return this->conv.get_out_channels();
 }
 
-nam::convnet::_Head::_Head(const int in_channels, const int out_channels, std::vector<float>::iterator& weights)
+nam::convnet::_Head::_Head(const int in_channels, const int out_channels, util::WeightCursor& weights)
 {
   // Weights are stored row-major: first row (output 0), then row 1 (output 1), etc.
   // For each output channel: [w0, w1, ..., w_{in_channels-1}]
@@ -140,7 +140,7 @@ nam::convnet::_Head::_Head(const int in_channels, const int out_channels, std::v
   {
     for (int in_ch = 0; in_ch < in_channels; in_ch++)
     {
-      this->_weight(out_ch, in_ch) = *(weights++);
+      this->_weight(out_ch, in_ch) = weights.Next();
     }
   }
 
@@ -148,7 +148,7 @@ nam::convnet::_Head::_Head(const int in_channels, const int out_channels, std::v
   this->_bias.resize(out_channels);
   for (int out_ch = 0; out_ch < out_channels; out_ch++)
   {
-    this->_bias(out_ch) = *(weights++);
+    this->_bias(out_ch) = weights.Next();
   }
 }
 
@@ -181,7 +181,7 @@ nam::convnet::ConvNet::ConvNet(const int in_channels, const int out_channels, co
 {
   this->_verify_weights(channels, dilations, batchnorm, weights.size());
   this->_blocks.resize(dilations.size());
-  std::vector<float>::iterator it = weights.begin();
+  util::WeightCursor it(weights);
   // First block takes in_channels input, subsequent blocks take channels input
   for (size_t i = 0; i < dilations.size(); i++)
     this->_blocks[i].set_weights_(
@@ -194,8 +194,11 @@ nam::convnet::ConvNet::ConvNet(const int in_channels, const int out_channels, co
   // Create single head that outputs all channels
   this->_head = _Head(channels, out_channels, it);
 
-  if (it != weights.end())
-    throw std::runtime_error("Didn't touch all the weights when initializing ConvNet");
+  // Was `if (it != weights.end())` against a hand-advanced second iterator -- now checked against
+  // the same cursor that already guarded every read above against running past the end (C1).
+  if (!it.AtEnd())
+    throw std::runtime_error("ConvNet: weight stream has " + std::to_string(it.Remaining())
+                             + " trailing weights left over after loading -- the file may be corrupted.");
 
   mPrewarmSamples = 1;
   for (size_t i = 0; i < dilations.size(); i++)
@@ -280,7 +283,23 @@ void nam::convnet::ConvNet::process(NAM_SAMPLE** input, NAM_SAMPLE** output, con
 void nam::convnet::ConvNet::_verify_weights(const int channels, const std::vector<int>& dilations, const bool batchnorm,
                                             const size_t actual_weights)
 {
-  // TODO
+  // C2 (docs/decisions.md, Absolute Stereo NAM fork): this was an empty TODO stub -- a corrupted
+  // or hostile .nam file could supply a negative or absurdly large `channels`/dilation value here,
+  // which would otherwise feed straight into resize()/Eigen allocation-sizing arithmetic in the
+  // blocks and head constructed just below, before WeightCursor's per-element bounds check (C1)
+  // even gets a chance to run. Bounds are generous -- real ConvNet models use single-digit-to-
+  // low-hundreds channel counts and short dilation schedules. Exact weight-count precomputation
+  // (matching `actual_weights` against a fully-derived expected total) is deliberately not
+  // attempted here: WeightCursor already throws cleanly on the first read past the end (C1), and
+  // the constructor's own final `AtEnd()` check catches leftover weights -- duplicating that
+  // arithmetic here would only add a second place it could be gotten wrong.
+  util::CheckDimension(channels, 100000, "channels");
+  if (dilations.empty())
+    throw std::runtime_error("ConvNet: dilations must be non-empty.");
+  for (const int dilation : dilations)
+    util::CheckDimension(dilation, 1000000, "dilations[i]");
+  (void)batchnorm;
+  (void)actual_weights;
 }
 
 void nam::convnet::ConvNet::SetMaxBufferSize(const int maxBufferSize)
@@ -335,6 +354,9 @@ nam::convnet::ConvNetConfig nam::convnet::parse_config_json(const nlohmann::json
   // Default to 1 channel in/out for backward compatibility
   c.in_channels = config.value("in_channels", 1);
   c.out_channels = config.value("out_channels", 1);
+  // C2 (docs/decisions.md, Absolute Stereo NAM fork): see the reasoning in lstm.cpp's parser.
+  util::CheckDimension(c.in_channels, 256, "in_channels");
+  util::CheckDimension(c.out_channels, 256, "out_channels");
   return c;
 }
 

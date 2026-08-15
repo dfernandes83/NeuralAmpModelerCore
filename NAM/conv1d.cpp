@@ -8,7 +8,7 @@ namespace nam
 {
 // Conv1D =====================================================================
 
-void Conv1D::set_weights_(std::vector<float>::iterator& weights)
+void Conv1D::set_weights_(util::WeightCursor& weights)
 {
   _has_cached_prewarm_state = false;
   if (this->_is_depthwise)
@@ -21,7 +21,7 @@ void Conv1D::set_weights_(std::vector<float>::iterator& weights)
     {
       for (size_t k = 0; k < kernel_size; k++)
       {
-        this->_depthwise_weight[k](c) = *(weights++);
+        this->_depthwise_weight[k](c) = weights.Next();
       }
     }
   }
@@ -45,14 +45,14 @@ void Conv1D::set_weights_(std::vector<float>::iterator& weights)
         {
           for (size_t k = 0; k < this->_weight.size(); k++)
           {
-            this->_weight[k](g * out_per_group + i, g * in_per_group + j) = *(weights++);
+            this->_weight[k](g * out_per_group + i, g * in_per_group + j) = weights.Next();
           }
         }
       }
     }
   }
   for (long i = 0; i < this->_bias.size(); i++)
-    this->_bias(i) = *(weights++);
+    this->_bias(i) = weights.Next();
 }
 
 void Conv1D::set_size_(const int in_channels, const int out_channels, const int kernel_size, const bool do_bias,
@@ -119,7 +119,7 @@ void Conv1D::set_size_(const int in_channels, const int out_channels, const int 
 
 void Conv1D::set_size_and_weights_(const int in_channels, const int out_channels, const int kernel_size,
                                    const int _dilation, const bool do_bias, const int groups,
-                                   std::vector<float>::iterator& weights)
+                                   util::WeightCursor& weights)
 {
   this->set_size_(in_channels, out_channels, kernel_size, do_bias, _dilation, groups);
   this->set_weights_(weights);

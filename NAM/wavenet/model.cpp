@@ -43,7 +43,7 @@ nam::wavenet::detail::Head::Head(const HeadParams& params)
   }
 }
 
-void nam::wavenet::detail::Head::set_weights_(std::vector<float>::iterator& weights)
+void nam::wavenet::detail::Head::set_weights_(util::WeightCursor& weights)
 {
   for (size_t i = 0; i < _convs.size(); i++)
     _convs[i].set_weights_(weights);
@@ -149,7 +149,7 @@ void nam::wavenet::detail::Layer::SetMaxBufferSize(const int maxBufferSize)
     this->_head1x1_post_film->SetMaxBufferSize(maxBufferSize);
 }
 
-void nam::wavenet::detail::Layer::set_weights_(std::vector<float>::iterator& weights)
+void nam::wavenet::detail::Layer::set_weights_(util::WeightCursor& weights)
 {
   this->_conv.set_weights_(weights);
   this->_input_mixin.set_weights_(weights);
@@ -560,7 +560,7 @@ const Eigen::MatrixXf& nam::wavenet::detail::LayerArray::GetHeadOutputs() const
 }
 
 
-void nam::wavenet::detail::LayerArray::set_weights_(std::vector<float>::iterator& weights)
+void nam::wavenet::detail::LayerArray::set_weights_(util::WeightCursor& weights)
 {
   this->_rechannel.set_weights_(weights);
   for (size_t i = 0; i < this->_layers.size(); i++)
@@ -660,26 +660,25 @@ nam::wavenet::WaveNet::WaveNet(const int in_channels,
 
 void nam::wavenet::WaveNet::set_weights_(std::vector<float>& weights)
 {
-  std::vector<float>::iterator it = weights.begin();
+  // C1 (docs/decisions.md, Absolute Stereo NAM fork): was a raw std::vector<float>::iterator,
+  // walked without any bounds check by every set_weights_() call below -- a truncated or
+  // corrupted .nam file (too few weights for this config) caused undefined behavior (a heap
+  // over-read) instead of a catchable error. WeightCursor::Next() throws std::runtime_error the
+  // moment it would read past the end.
+  util::WeightCursor it(weights);
   // Note: condition_dsp already has its own weights from construction,
   // so we don't need to set its weights here.
   for (size_t i = 0; i < this->_layer_arrays.size(); i++)
     this->_layer_arrays[i].set_weights_(it);
   if (this->_post_stack_head != nullptr)
     this->_post_stack_head->set_weights_(it);
-  this->_head_scale = *(it++); // TODO `LayerArray.absorb_head_scale()`
-  if (it != weights.end())
-  {
-    std::stringstream ss;
-    for (size_t i = 0; i < weights.size(); i++)
-      if (weights[i] == *it)
-      {
-        ss << "Weight mismatch: assigned " << i + 1 << " weights, but " << weights.size() << " were provided.";
-        throw std::runtime_error(ss.str().c_str());
-      }
-    ss << "Weight mismatch: provided " << weights.size() << " weights, but the model expects more.";
-    throw std::runtime_error(ss.str().c_str());
-  }
+  this->_head_scale = it.Next(); // TODO `LayerArray.absorb_head_scale()`
+  // Was a search for the first index where weights[i] == *it, to name a position in the error
+  // message -- fragile (duplicate values, e.g. the many zero-initialized biases, could match the
+  // wrong index). The cursor already knows exactly how many weights are left over.
+  if (!it.AtEnd())
+    throw std::runtime_error("WaveNet: weight stream has " + std::to_string(it.Remaining())
+                             + " trailing weights left over after loading -- the file may be corrupted.");
 }
 
 void nam::wavenet::WaveNet::SetMaxBufferSize(const int maxBufferSize)

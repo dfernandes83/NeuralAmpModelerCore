@@ -360,14 +360,14 @@ void nam::Conv1x1::SetMaxBufferSize(const int maxBufferSize)
   _output.resize(get_out_channels(), maxBufferSize);
 }
 
-void nam::Conv1x1::set_weights_(std::vector<float>::iterator& weights)
+void nam::Conv1x1::set_weights_(util::WeightCursor& weights)
 {
   if (this->_is_depthwise)
   {
     // Depthwise convolution: one weight per channel
     for (int c = 0; c < this->_channels; c++)
     {
-      this->_depthwise_weight(c) = *(weights++);
+      this->_depthwise_weight(c) = weights.Next();
     }
   }
   else if (this->_weight.size() > 0)
@@ -387,14 +387,14 @@ void nam::Conv1x1::set_weights_(std::vector<float>::iterator& weights)
       {
         for (auto j = 0; j < in_per_group; j++)
         {
-          this->_weight(g * out_per_group + i, g * in_per_group + j) = *(weights++);
+          this->_weight(g * out_per_group + i, g * in_per_group + j) = weights.Next();
         }
       }
     }
   }
   if (this->_do_bias)
     for (int i = 0; i < this->_bias.size(); i++)
-      this->_bias(i) = *(weights++);
+      this->_bias(i) = weights.Next();
 }
 
 long nam::Conv1x1::get_out_channels() const

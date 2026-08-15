@@ -14,6 +14,7 @@
 #include "compiler.h"
 #include "json.hpp"
 #include "model_config.h"
+#include "util.h"
 
 #ifdef NAM_SAMPLE_FLOAT
   #define NAM_SAMPLE float
@@ -297,8 +298,8 @@ public:
   void SetMaxBufferSize(const int maxBufferSize);
 
   /// \brief Set the parameters (weights) of this module
-  /// \param weights Iterator to the weights vector. Will be advanced as weights are consumed.
-  void set_weights_(std::vector<float>::iterator& weights);
+  /// \param weights Bounds-checked cursor over the weights vector. Will be advanced as weights are consumed.
+  void set_weights_(util::WeightCursor& weights);
 
   /// \brief Process input and return output matrix
   ///

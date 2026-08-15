@@ -52,8 +52,8 @@ public:
   }
 
   /// \brief Set the parameters (weights) of this module
-  /// \param weights Iterator to the weights vector. Will be advanced as weights are consumed.
-  void set_weights_(std::vector<float>::iterator& weights) { _cond_to_scale_shift.set_weights_(weights); }
+  /// \param weights Bounds-checked cursor over the weights vector. Will be advanced as weights are consumed.
+  void set_weights_(util::WeightCursor& weights) { _cond_to_scale_shift.set_weights_(weights); }
 
   /// \brief Get the condition dimension
   /// \return Size of the conditioning input

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <mutex>
 #include <regex>
@@ -130,12 +131,23 @@ void verify_config_version(const std::string versionStr)
 std::vector<float> GetWeights(nlohmann::json const& j)
 {
   auto it = j.find("weights");
-  if (it != j.end())
-  {
-    return *it;
-  }
-  else
+  if (it == j.end())
     throw std::runtime_error("Corrupted model file is missing weights.");
+
+  std::vector<float> weights = *it;
+  // C6 (docs/decisions.md, Absolute Stereo NAM fork): a NaN/Inf weight (corrupted file, or a bad
+  // export) was previously accepted silently and would permanently contaminate the model's
+  // internal state and audio output the moment it hit any multiply -- the plugin never rejects
+  // it later, so a single bad float in a several-thousand-weight file would go undetected until
+  // a user hears (or doesn't hear -- NaN can silently render dead silence) the result. Checked
+  // once, here, at the single choke point every architecture's weights already pass through.
+  for (size_t i = 0; i < weights.size(); i++)
+  {
+    if (!std::isfinite(weights[i]))
+      throw std::runtime_error("Corrupted model file: weight at index " + std::to_string(i)
+                               + " is not a finite number (NaN or Inf).");
+  }
+  return weights;
 }
 
 void populate_dsp_data(const nlohmann::json& config, dspData& returnedConfig)
@@ -274,10 +286,19 @@ std::unique_ptr<DSP> get_dsp(dspData& conf, DspLoadOptions options)
 
 double get_sample_rate_from_nam_file(const nlohmann::json& j)
 {
-  if (j.find("sample_rate") != j.end())
-    return j["sample_rate"];
-  else
+  const auto it = j.find("sample_rate");
+  if (it == j.end())
     return -1.0;
+
+  const double sample_rate = *it;
+  // C6 (docs/decisions.md, Absolute Stereo NAM fork): -1.0 already means "unknown" everywhere
+  // this value flows (e.g. GetPrewarmSamples()'s `0.5 * mExpectedSampleRate` -- a negative or
+  // non-finite sample rate would make that computation garbage too, silently). A present-but-
+  // corrupted value is a stronger signal of real file corruption than a genuinely absent field,
+  // so this rejects rather than quietly falling back to "unknown".
+  if (!std::isfinite(sample_rate) || sample_rate <= 0.0)
+    throw std::runtime_error("Corrupted model file: sample_rate is not a positive, finite number.");
+  return sample_rate;
 }
 
 }; // namespace nam
