@@ -3,6 +3,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -38,6 +39,56 @@ private:
   nam::DSP& mDSP;
   bool mPreviousPrewarmOnReset;
 };
+
+// GetInherentLatencySamples() support -----------------------------------------------------
+
+constexpr int kInherentLatencyProbeBufferSize = 16384; // generous -- covers any plausible receptive field
+constexpr int kInherentLatencyProbeImpulseIndex = 512; // pre-roll silence before the impulse
+constexpr NAM_SAMPLE kInherentLatencyProbeImpulseAmplitude = 0.05; // small, to stay near the linear region
+constexpr double kInherentLatencyOnsetThresholdFraction = 0.20; // see GetInherentLatencySamples()'s doc comment
+
+// Probes a strictly-causal, single-channel system with a low-amplitude impulse and finds the
+// first output sample whose magnitude clears `onsetThresholdFraction` of the response's peak
+// ("onset") -- the model's own inherent processing/capture delay, invisible to any static
+// property of the model since every architecture here is strictly causal. `process` mirrors a
+// mono, single-call process step. Called twice: once with all silence (settles any first-call-
+// only setup/ring buffers) and once with a single impulse at `impulseIndex`.
+int ProbeOnsetLatency(const std::function<void(NAM_SAMPLE*, NAM_SAMPLE*, int)>& process, const int bufferSize,
+                      const int impulseIndex, const NAM_SAMPLE impulseAmplitude, const double onsetThresholdFraction)
+{
+  std::vector<NAM_SAMPLE> input(static_cast<size_t>(bufferSize), NAM_SAMPLE(0));
+  std::vector<NAM_SAMPLE> output(static_cast<size_t>(bufferSize), NAM_SAMPLE(0));
+
+  process(input.data(), output.data(), bufferSize);
+
+  std::fill(input.begin(), input.end(), NAM_SAMPLE(0));
+  input[static_cast<size_t>(impulseIndex)] = impulseAmplitude;
+  process(input.data(), output.data(), bufferSize);
+
+  double peakMagnitude = 0.0;
+  int peakIndex = impulseIndex;
+  for (int i = impulseIndex; i < bufferSize; ++i)
+  {
+    const double magnitude = std::fabs(static_cast<double>(output[static_cast<size_t>(i)]));
+    if (magnitude > peakMagnitude)
+    {
+      peakMagnitude = magnitude;
+      peakIndex = i;
+    }
+  }
+
+  const double onsetThreshold = peakMagnitude * onsetThresholdFraction;
+  int onsetIndex = peakIndex;
+  for (int i = impulseIndex; i <= peakIndex; ++i)
+  {
+    if (std::fabs(static_cast<double>(output[static_cast<size_t>(i)])) >= onsetThreshold)
+    {
+      onsetIndex = i;
+      break;
+    }
+  }
+  return onsetIndex - impulseIndex;
+}
 
 } // namespace
 
@@ -196,6 +247,40 @@ void nam::DSP::SetOutputLevel(const double outputLevel)
 {
   mOutputLevel.haveLevel = true;
   mOutputLevel.level = outputLevel;
+}
+
+int nam::DSP::GetInherentLatencySamples()
+{
+  if (mHasMeasuredInherentLatency)
+    return mInherentLatencySamples;
+
+  // Reset (and prewarm) at the probe's own buffer size *before* probing -- ring buffers/RNN
+  // state sized by SetMaxBufferSize() overrides (Conv1D, WaveNet, ...) aren't correctly sized
+  // until Reset() has run at least once, and process() on a freshly-constructed, never-Reset
+  // object isn't a meaningful measurement.
+  ResetAndPrewarm(GetExpectedSampleRate(), kInherentLatencyProbeBufferSize);
+
+  // Probe channel 0 only (see the doc comment on the declaration) -- wraps this object's own
+  // process() as the single-channel process function the probe expects.
+  const std::function<void(NAM_SAMPLE*, NAM_SAMPLE*, int)> processFunc = [this](NAM_SAMPLE* input,
+                                                                                NAM_SAMPLE* output, int numFrames) {
+    NAM_SAMPLE* inputPointers[] = {input};
+    NAM_SAMPLE* outputPointers[] = {output};
+    this->process(inputPointers, outputPointers, numFrames);
+  };
+
+  mInherentLatencySamples =
+    ProbeOnsetLatency(processFunc, kInherentLatencyProbeBufferSize, kInherentLatencyProbeImpulseIndex,
+                      kInherentLatencyProbeImpulseAmplitude, kInherentLatencyOnsetThresholdFraction);
+  mHasMeasuredInherentLatency = true;
+
+  // The probe left real state in this object (RNN hidden states, ring buffers, ...) -- Reset()
+  // at the model's own native rate to leave it ready for real use. Callers that need a different
+  // sample rate/buffer size should call Reset() again themselves with those settings right after
+  // this returns, exactly as they would have needed to anyway before ever calling this method.
+  Reset(GetExpectedSampleRate(), kInherentLatencyProbeBufferSize);
+
+  return mInherentLatencySamples;
 }
 
 // Buffer =====================================================================

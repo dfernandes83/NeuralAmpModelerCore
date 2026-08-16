@@ -199,6 +199,35 @@ public:
   /// \return Maximum buffer size
   int GetMaxBufferSize() const { return mMaxBufferSize; };
 
+  /// \brief Measure this model's inherent onset ("capture") latency, in samples at the model's
+  /// own native sample rate.
+  ///
+  /// NAM models are trained on paired input/output audio captured from real equipment; if that
+  /// capture wasn't sample-accurately aligned (e.g. an uncompensated round-trip through a reamp
+  /// or loopback chain before training), the network learns to reproduce that misalignment as
+  /// part of its response. Every architecture here is strictly causal, so this is invisible to
+  /// any static property of the model -- it can only be found by probing actual behavior: a
+  /// single low-amplitude impulse is processed, and the first output sample whose magnitude
+  /// clears a threshold relative to the response's peak is the onset. A model with no baked-in
+  /// delay has an onset near zero; one with a misaligned capture reports the true delay.
+  ///
+  /// This has real side effects: it calls Reset()+prewarm() (ring buffers/RNN state sized by a
+  /// subclass's SetMaxBufferSize() aren't valid until Reset() has run at least once), runs a
+  /// probe impulse through the model, and then calls Reset() again afterward to leave the model
+  /// ready for real use, at the same expected sample rate this object already knows about. Call
+  /// this once, after construction, before real audio processing begins -- never from a
+  /// real-time process() call, and never concurrently with another call to process()/Reset() on
+  /// the same instance (same single-caller-at-a-time contract every other mutating method on
+  /// this class already assumes). Idempotent after the first call: the result is cached and
+  /// returned directly on subsequent calls.
+  ///
+  /// Assumes exactly one input and one output channel, which covers the overwhelming majority of
+  /// published NAM models (guitar/bass amp and pedal captures); for a multi-channel model this
+  /// probes/measures channel 0 only.
+  /// \return Onset latency in samples, at this model's own native (expected) sample rate. 0 if
+  ///         no measurable delay was found.
+  int GetInherentLatencySamples();
+
 protected:
   friend class wavenet::WaveNet; // Allow WaveNet to access protected members. Used in condition DSP.
 
@@ -229,6 +258,9 @@ private:
   // Note: input/output levels are assumed global over all inputs/outputs
   Level mInputLevel;
   Level mOutputLevel;
+  // Cache for GetInherentLatencySamples() -- computed at most once per instance.
+  bool mHasMeasuredInherentLatency = false;
+  int mInherentLatencySamples = 0;
 };
 
 /// \brief Base class for DSP models that require input buffering
