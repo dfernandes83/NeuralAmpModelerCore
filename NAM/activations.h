@@ -1,7 +1,8 @@
 #pragma once
 
+#include <algorithm> // std::clamp, std::max
 #include <cassert>
-#include <cmath> // expf
+#include <cmath> // std::exp, std::abs
 #include <iostream> // std::cerr (kept for potential debug use)
 #include <stdexcept> // std::invalid_argument
 #include <functional>
@@ -59,43 +60,35 @@ struct ActivationConfig
 };
 inline float relu(float x)
 {
-  return x > 0.0f ? x : 0.0f;
+  return std::max(0.0f, x);
 };
 
 inline float sigmoid(float x)
 {
-  return 1.0f / (1.0f + expf(-x));
+  return 1.0f / (1.0f + std::exp(-x));
 };
 
 inline float hard_tanh(float x)
 {
-  const float t = x < -1 ? -1 : x;
-  return t > 1 ? 1 : t;
+  return std::clamp(x, -1.0f, 1.0f);
 }
 
 inline float leaky_hardtanh(float x, float min_val, float max_val, float min_slope, float max_slope)
 {
   if (x < min_val)
-  {
     return (x - min_val) * min_slope + min_val;
-  }
-  else if (x > max_val)
-  {
+  if (x > max_val)
     return (x - max_val) * max_slope + max_val;
-  }
-  else
-  {
-    return x;
-  }
+  return x;
 }
 
 inline float fast_tanh(const float x)
 {
-  const float ax = fabsf(x);
+  const float ax = std::abs(x);
   const float x2 = x * x;
 
   return (x * (2.45550750702956f + 2.45550750702956f * ax + (0.893229853513558f + 0.821226666969744f * ax) * x2)
-          / (2.44506634652299f + (2.44506634652299f + x2) * fabsf(x + 0.814642734961073f * x * ax)));
+          / (2.44506634652299f + (2.44506634652299f + x2) * std::abs(x + 0.814642734961073f * x * ax)));
 }
 
 inline float fast_sigmoid(const float x)
@@ -112,7 +105,6 @@ inline float leaky_relu(float x)
   return leaky_relu(x, 0.01f);
 }
 
-
 inline float swish(float x)
 {
   return x * sigmoid(x);
@@ -120,23 +112,17 @@ inline float swish(float x)
 
 inline float hardswish(float x)
 {
-  // Branchless implementation using clamp
-  // hardswish(x) = x * relu6(x + 3) / 6
-  //              = x * clamp(x + 3, 0, 6) / 6
-  const float t = x + 3.0f;
-  const float clamped = t < 0.0f ? 0.0f : (t > 6.0f ? 6.0f : t);
-  return x * clamped * (1.0f / 6.0f);
+  return x * std::clamp(x + 3.0f, 0.0f, 6.0f) * (1.0f / 6.0f);
 }
 
 inline float softsign(float x)
 {
-  return x / (1.0f + fabsf(x));
+  return x / (1.0f + std::abs(x));
 }
 
 class Activation
 {
 public:
-  // Type alias for shared pointer to Activation
   using Ptr = std::shared_ptr<Activation>;
 
   Activation() = default;
@@ -144,23 +130,15 @@ public:
   virtual void apply(Eigen::MatrixXf& matrix) { apply(matrix.data(), matrix.rows() * matrix.cols()); }
   virtual void apply(Eigen::Block<Eigen::MatrixXf> block)
   {
-    // Block must be contiguous in memory (outerStride == rows) for flat data() access.
-    // Non-contiguous blocks (e.g. topRows() of a wider matrix) would read/write wrong elements.
     assert(block.outerStride() == block.rows());
     apply(block.data(), block.rows() * block.cols());
   }
   virtual void apply(Eigen::Block<Eigen::MatrixXf, -1, -1, true> block)
   {
-    // Inner-panel blocks (e.g. leftCols()) are always contiguous for column-major matrices,
-    // but assert anyway for safety.
     assert(block.outerStride() == block.rows());
     apply(block.data(), block.rows() * block.cols());
   }
   virtual void apply(float* data, Eigen::Index size) = 0;
-
-  /// \brief Look up a named activation singleton.
-  ///
-  /// Construction-time only (called from LSTM/ConvNet/WaveNet layer constructors while a model
   /// is being staged) -- never called from the real-time process() path of any architecture in
   /// this codebase, so the mutex this and the setters below take is never touched by the audio
   /// thread.
