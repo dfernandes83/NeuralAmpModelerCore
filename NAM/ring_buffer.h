@@ -46,7 +46,7 @@ public:
 
   /// \brief Get number of channels (rows)
   /// \return Number of channels
-  int GetChannels() const { return _storage.rows(); }
+  int GetChannels() const { return static_cast<int>(_storage.rows()); }
 
   /// \brief Set the max lookback (maximum history needed when rewinding)
   /// \param max_lookback Maximum lookback distance

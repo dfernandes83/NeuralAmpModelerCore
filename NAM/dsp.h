@@ -253,7 +253,7 @@ private:
   struct Level
   {
     bool haveLevel = false;
-    float level = 0.0;
+    double level = 0.0;
   };
   // Note: input/output levels are assumed global over all inputs/outputs
   Level mInputLevel;

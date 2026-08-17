@@ -30,8 +30,8 @@ nam::lstm::LSTMCell::LSTMCell(const int input_size, const int hidden_size, util:
 
 void nam::lstm::LSTMCell::process_(const Eigen::Ref<const Eigen::VectorXf>& x)
 {
-  const long hidden_size = this->_get_hidden_size();
-  const long input_size = this->_get_input_size();
+  const Eigen::Index hidden_size = this->_get_hidden_size();
+  const Eigen::Index input_size = this->_get_input_size();
   // Assign inputs
   this->_xh(Eigen::seq(0, input_size - 1)) = x;
   // The matmul. Use noalias() and a separate bias add so Eigen evaluates the
@@ -39,11 +39,11 @@ void nam::lstm::LSTMCell::process_(const Eigen::Ref<const Eigen::VectorXf>& x)
   this->_ifgo.noalias() = this->_w * this->_xh;
   this->_ifgo += this->_b;
   // Elementwise updates (apply nonlinearities here)
-  const long i_offset = 0;
-  const long f_offset = hidden_size;
-  const long g_offset = 2 * hidden_size;
-  const long o_offset = 3 * hidden_size;
-  const long h_offset = input_size;
+  const Eigen::Index i_offset = 0;
+  const Eigen::Index f_offset = hidden_size;
+  const Eigen::Index g_offset = 2 * hidden_size;
+  const Eigen::Index o_offset = 3 * hidden_size;
+  const Eigen::Index h_offset = input_size;
 
   if (activations::Activation::using_fast_tanh)
   {
@@ -114,7 +114,7 @@ void nam::lstm::LSTM::process(NAM_SAMPLE** input, NAM_SAMPLE** output, const int
     // Copy multi-channel input to _input vector
     for (int ch = 0; ch < in_channels; ch++)
     {
-      this->_input(ch) = input[ch][i];
+      this->_input(ch) = static_cast<float>(input[ch][i]);
     }
 
     // Process sample (stores result in _output)

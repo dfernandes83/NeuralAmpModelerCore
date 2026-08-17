@@ -813,7 +813,7 @@ void nam::wavenet::WaveNet::_set_condition_array(NAM_SAMPLE** input, const int n
   {
     for (int j = 0; j < num_frames; j++)
     {
-      this->_condition_input(ch, j) = input[ch][j];
+      this->_condition_input(ch, j) = static_cast<float>(input[ch][j]);
     }
   }
 }

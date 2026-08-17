@@ -125,7 +125,7 @@ void nam::DSP::prewarm()
   if (prewarmSamples == 0)
     return;
 
-  const size_t bufferSize = std::max(mMaxBufferSize, 1);
+  const int bufferSize = std::max(mMaxBufferSize, 1);
   // Allocate buffers for all channels
   std::vector<std::vector<NAM_SAMPLE>> inputBuffers(mInChannels);
   std::vector<std::vector<NAM_SAMPLE>> outputBuffers(mOutChannels);
@@ -457,11 +457,11 @@ void nam::Conv1x1::set_weights_(util::WeightCursor& weights)
   }
   else if (this->_weight.size() > 0)
   {
-    const long out_channels = this->_weight.rows();
-    const long in_channels = this->_weight.cols();
+    const Eigen::Index out_channels = this->_weight.rows();
+    const Eigen::Index in_channels = this->_weight.cols();
     const int numGroups = this->_num_groups;
-    const long out_per_group = out_channels / numGroups;
-    const long in_per_group = in_channels / numGroups;
+    const Eigen::Index out_per_group = out_channels / numGroups;
+    const Eigen::Index in_per_group = in_channels / numGroups;
 
     // For grouped convolutions, weights are organized per group
     // Weight layout: weights are [group0, group1, ..., groupN-1]
@@ -486,14 +486,14 @@ long nam::Conv1x1::get_out_channels() const
 {
   if (this->_is_depthwise)
     return this->_channels;
-  return this->_weight.rows();
+  return static_cast<long>(this->_weight.rows());
 }
 
 long nam::Conv1x1::get_in_channels() const
 {
   if (this->_is_depthwise)
     return this->_channels;
-  return this->_weight.cols();
+  return static_cast<long>(this->_weight.cols());
 }
 
 Eigen::MatrixXf nam::Conv1x1::process(const Eigen::MatrixXf& input, const int num_frames) const

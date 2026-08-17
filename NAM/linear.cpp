@@ -181,7 +181,7 @@ void nam::Linear::_process_direct(NAM_SAMPLE** input, NAM_SAMPLE** output, const
   {
     for (int i = 0; i < num_frames; i++)
     {
-      const long offset = this->_input_buffer_offset - this->_weight.size() + i + 1;
+      const long offset = this->_input_buffer_offset - static_cast<long>(this->_weight.size()) + i + 1;
       auto input_vec = Eigen::Map<const Eigen::VectorXf>(&this->_input_buffers[ch][offset], this->_receptive_field);
       output[ch][i] = this->_bias + this->_weight.dot(input_vec);
     }

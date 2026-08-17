@@ -67,7 +67,7 @@ public:
   /// \param activation_config Activation function configuration
   /// \param groups Number of groups for grouped convolution
   /// \param weights Bounds-checked cursor over the weights vector. Will be advanced as weights are consumed.
-  void set_weights_(const int in_channels, const int out_channels, const int _dilation, const bool batchnorm,
+  void set_weights_(const int in_channels, const int out_channels, const int dilation, const bool use_batchnorm,
                     const activations::ActivationConfig& activation_config, const int groups,
                     util::WeightCursor& weights);
 

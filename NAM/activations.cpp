@@ -5,8 +5,8 @@ static nam::activations::ActivationTanh _TANH;
 static nam::activations::ActivationFastTanh _FAST_TANH;
 static nam::activations::ActivationHardTanh _HARD_TANH;
 static nam::activations::ActivationReLU _RELU;
-static nam::activations::ActivationLeakyReLU _LEAKY_RELU(0.01); // FIXME does not parameterize LeakyReLU
-static nam::activations::ActivationPReLU _PRELU(0.01); // Same as leaky ReLU by default
+static nam::activations::ActivationLeakyReLU _LEAKY_RELU(0.01f); // FIXME does not parameterize LeakyReLU
+static nam::activations::ActivationPReLU _PRELU(0.01f); // Same as leaky ReLU by default
 static nam::activations::ActivationSigmoid _SIGMOID;
 static nam::activations::ActivationSwish _SWISH;
 static nam::activations::ActivationHardSwish _HARD_SWISH;

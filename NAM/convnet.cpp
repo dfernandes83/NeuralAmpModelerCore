@@ -47,14 +47,14 @@ void nam::convnet::BatchNorm::process_(Eigen::MatrixXf& x, const long i_start, c
   }
 }
 
-void nam::convnet::ConvNetBlock::set_weights_(const int in_channels, const int out_channels, const int _dilation,
-                                              const bool batchnorm,
+void nam::convnet::ConvNetBlock::set_weights_(const int in_channels, const int out_channels, const int dilation,
+                                              const bool use_batchnorm,
                                               const activations::ActivationConfig& activation_config, const int groups,
                                               util::WeightCursor& weights)
 {
-  this->_batchnorm = batchnorm;
+  this->_batchnorm = use_batchnorm;
   // HACK 2 kernel
-  this->conv.set_size_and_weights_(in_channels, out_channels, 2, _dilation, !batchnorm, groups, weights);
+  this->conv.set_size_and_weights_(in_channels, out_channels, 2, dilation, !use_batchnorm, groups, weights);
   if (this->_batchnorm)
     this->batchnorm = BatchNorm(out_channels, weights);
   this->activation = activations::Activation::get_activation(activation_config);
@@ -156,7 +156,7 @@ void nam::convnet::_Head::process_(const Eigen::MatrixXf& input, Eigen::MatrixXf
                                    const long i_end) const
 {
   const long length = i_end - i_start;
-  const long out_channels = this->_weight.rows();
+  const Eigen::Index out_channels = this->_weight.rows();
 
   // Resize output to (out_channels x length)
   output.resize(out_channels, length);

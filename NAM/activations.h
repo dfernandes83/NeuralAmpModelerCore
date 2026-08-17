@@ -109,7 +109,7 @@ inline float leaky_relu(float x, float negative_slope)
 }
 inline float leaky_relu(float x)
 {
-  return leaky_relu(x, 0.01);
+  return leaky_relu(x, 0.01f);
 }
 
 
@@ -156,7 +156,7 @@ public:
     assert(block.outerStride() == block.rows());
     apply(block.data(), block.rows() * block.cols());
   }
-  virtual void apply(float* data, long size) = 0;
+  virtual void apply(float* data, Eigen::Index size) = 0;
 
   /// \brief Look up a named activation singleton.
   ///
@@ -193,15 +193,15 @@ class ActivationIdentity : public nam::activations::Activation
 public:
   ActivationIdentity() = default;
   ~ActivationIdentity() = default;
-  virtual void apply(float* data, long size) override {};
+  virtual void apply(float*, Eigen::Index) override {};
 };
 
 class ActivationTanh : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
     {
       data[pos] = std::tanh(data[pos]);
     }
@@ -211,9 +211,9 @@ public:
 class ActivationHardTanh : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
     {
       data[pos] = hard_tanh(data[pos]);
     }
@@ -231,27 +231,27 @@ public:
     min_slope = min_slope_;
     max_slope = max_slope_;
   }
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
     {
       data[pos] = leaky_hardtanh(data[pos], min_val, max_val, min_slope, max_slope);
     }
   }
 
 private:
-  float min_val = -1.0;
-  float max_val = 1.0;
-  float min_slope = 0.01;
-  float max_slope = 0.01;
+  float min_val = -1.0f;
+  float max_val = 1.0f;
+  float min_slope = 0.01f;
+  float max_slope = 0.01f;
 };
 
 class ActivationFastTanh : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
     {
       data[pos] = fast_tanh(data[pos]);
     }
@@ -261,9 +261,9 @@ public:
 class ActivationReLU : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
       data[pos] = relu(data[pos]);
   }
 };
@@ -273,16 +273,16 @@ class ActivationLeakyReLU : public Activation
 public:
   ActivationLeakyReLU() = default;
   ActivationLeakyReLU(float ns) { negative_slope = ns; }
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
     {
       data[pos] = leaky_relu(data[pos], negative_slope);
     }
   }
 
 private:
-  float negative_slope = 0.01;
+  float negative_slope = 0.01f;
 };
 
 class ActivationPReLU : public Activation
@@ -296,7 +296,7 @@ public:
   }
   ActivationPReLU(std::vector<float> ns) { negative_slopes = ns; }
 
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
     // Assume column-major (this is brittle)
 #ifndef NDEBUG
@@ -307,7 +307,7 @@ public:
                                   + " channels, which doesn't divide evenly.");
     }
 #endif
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
     {
       const float negative_slope = negative_slopes[pos % negative_slopes.size()];
       data[pos] = leaky_relu(data[pos], negative_slope);
@@ -348,9 +348,9 @@ private:
 class ActivationSigmoid : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
       data[pos] = sigmoid(data[pos]);
   }
 };
@@ -358,9 +358,9 @@ public:
 class ActivationSwish : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
       data[pos] = swish(data[pos]);
   }
 };
@@ -368,9 +368,9 @@ public:
 class ActivationHardSwish : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
       data[pos] = hardswish(data[pos]);
   }
 };
@@ -378,9 +378,9 @@ public:
 class ActivationSoftsign : public Activation
 {
 public:
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long pos = 0; pos < size; pos++)
+    for (Eigen::Index pos = 0; pos < size; pos++)
       data[pos] = softsign(data[pos]);
   }
 };
@@ -424,9 +424,9 @@ public:
   }
 
   // Override base class virtual method to apply LUT lookup to array of floats
-  void apply(float* data, long size) override
+  void apply(float* data, Eigen::Index size) override
   {
-    for (long i = 0; i < size; i++)
+    for (Eigen::Index i = 0; i < size; i++)
     {
       data[i] = lookup(data[i]);
     }

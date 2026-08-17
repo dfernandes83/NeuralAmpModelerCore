@@ -49,7 +49,7 @@ public:
   /// \param _dilation Dilation factor for the convolution
   /// \param groups Number of groups for grouped convolution
   void set_size_(const int in_channels, const int out_channels, const int kernel_size, const bool do_bias,
-                 const int _dilation, const int groups = 1);
+                 const int dilation, const int groups = 1);
 
   /// \brief Set size and weights in one call
   /// \param in_channels Number of input channels
@@ -59,7 +59,7 @@ public:
   /// \param do_bias Whether to use bias
   /// \param groups Number of groups for grouped convolution
   /// \param weights Bounds-checked cursor over the weights vector. Will be advanced as weights are consumed.
-  void set_size_and_weights_(const int in_channels, const int out_channels, const int kernel_size, const int _dilation,
+  void set_size_and_weights_(const int in_channels, const int out_channels, const int kernel_size, const int dilation,
                              const bool do_bias, const int groups, util::WeightCursor& weights);
 
   /// \brief Reset the ring buffer and pre-allocate output buffer

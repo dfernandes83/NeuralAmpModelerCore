@@ -64,7 +64,7 @@ public:
     assert(output.rows() == num_channels);
     assert(output.cols() == input.cols());
 
-    const int num_samples = input.cols();
+    const Eigen::Index num_samples = input.cols();
 
 #ifdef NAM_USE_INLINE_GEMM
     // Optimized path: direct memory access with activation applied per-element
@@ -75,7 +75,7 @@ public:
     float* NAM_RESTRICT output_ptr = output.derived().data();
     const int output_stride = (int)output.outerStride(); // Column stride for output
 
-    for (int f = 0; f < num_samples; f++)
+    for (Eigen::Index f = 0; f < num_samples; f++)
     {
       const float* NAM_RESTRICT in_col = input_ptr + f * input_stride;
       float* NAM_RESTRICT out_col = output_ptr + f * output_stride;
@@ -170,7 +170,7 @@ public:
     assert(output.rows() == num_channels);
     assert(output.cols() == input.cols());
 
-    const int num_samples = input.cols();
+    const Eigen::Index num_samples = input.cols();
 
 #ifdef NAM_USE_INLINE_GEMM
     // Optimized path: direct memory access
@@ -181,7 +181,7 @@ public:
     float* NAM_RESTRICT output_ptr = output.derived().data();
     const int output_stride = (int)output.outerStride(); // Column stride for output
 
-    for (int f = 0; f < num_samples; f++)
+    for (Eigen::Index f = 0; f < num_samples; f++)
     {
       const float* NAM_RESTRICT in_col = input_ptr + f * input_stride;
       float* NAM_RESTRICT out_col = output_ptr + f * output_stride;

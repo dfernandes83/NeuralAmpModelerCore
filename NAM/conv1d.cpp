@@ -27,11 +27,11 @@ void Conv1D::set_weights_(util::WeightCursor& weights)
   }
   else if (this->_weight.size() > 0)
   {
-    const long out_channels = this->_weight[0].rows();
-    const long in_channels = this->_weight[0].cols();
+    const Eigen::Index out_channels = this->_weight[0].rows();
+    const Eigen::Index in_channels = this->_weight[0].cols();
     const int numGroups = this->_num_groups;
-    const long out_per_group = out_channels / numGroups;
-    const long in_per_group = in_channels / numGroups;
+    const Eigen::Index out_per_group = out_channels / numGroups;
+    const Eigen::Index in_per_group = in_channels / numGroups;
 
     // For grouped convolutions, weights are organized per group
     // Weight layout: for each kernel position k, weights are [group0, group1, ..., groupN-1]
@@ -56,7 +56,7 @@ void Conv1D::set_weights_(util::WeightCursor& weights)
 }
 
 void Conv1D::set_size_(const int in_channels, const int out_channels, const int kernel_size, const bool do_bias,
-                       const int _dilation, const int groups)
+                       const int dilation, const int groups)
 {
   // Validate that channels divide evenly by groups
   if (in_channels % groups != 0)
@@ -71,7 +71,7 @@ void Conv1D::set_size_(const int in_channels, const int out_channels, const int 
   }
 
   this->_num_groups = groups;
-  this->_dilation = _dilation;
+  this->_dilation = dilation;
 
   // Check for depthwise convolution: groups == in_channels == out_channels
   // In this case, each channel is processed independently with a single weight per kernel tap,
@@ -118,10 +118,10 @@ void Conv1D::set_size_(const int in_channels, const int out_channels, const int 
 }
 
 void Conv1D::set_size_and_weights_(const int in_channels, const int out_channels, const int kernel_size,
-                                   const int _dilation, const bool do_bias, const int groups,
+                                   const int dilation, const bool do_bias, const int groups,
                                    util::WeightCursor& weights)
 {
-  this->set_size_(in_channels, out_channels, kernel_size, do_bias, _dilation, groups);
+  this->set_size_(in_channels, out_channels, kernel_size, do_bias, dilation, groups);
   this->set_weights_(weights);
 }
 
@@ -188,7 +188,7 @@ void Conv1D::Process(const Eigen::MatrixXf& input, const int num_frames)
 
     for (size_t k = 0; k < kernel_size; k++)
     {
-      const long offset = this->_dilation * (k + 1 - (long)kernel_size);
+      const long offset = this->_dilation * (static_cast<long>(k) + 1 - static_cast<long>(kernel_size));
       const long lookback = -offset;
       auto input_block = _input_buffer.Read(num_frames, lookback);
       const float* NAM_RESTRICT input_ptr = input_block.data();
@@ -260,7 +260,7 @@ void Conv1D::Process(const Eigen::MatrixXf& input, const int num_frames)
 #else
     for (size_t k = 0; k < kernel_size; k++)
     {
-      const long offset = this->_dilation * (k + 1 - (long)kernel_size);
+      const long offset = this->_dilation * (static_cast<long>(k) + 1 - static_cast<long>(kernel_size));
       const long lookback = -offset;
       auto input_block = _input_buffer.Read(num_frames, lookback);
       // Element-wise multiply: each row of input_block is multiplied by corresponding weight
@@ -427,7 +427,7 @@ void Conv1D::Process(const Eigen::MatrixXf& input, const int num_frames)
       // General inline GEMM path for other configurations
       for (size_t k = 0; k < kernel_size; k++)
       {
-        const long offset = this->_dilation * (k + 1 - (long)kernel_size);
+        const long offset = this->_dilation * (static_cast<long>(k) + 1 - static_cast<long>(kernel_size));
         const long lookback = -offset;
         auto input_block = _input_buffer.Read(num_frames, lookback);
 
@@ -675,7 +675,8 @@ void Conv1D::Process(const Eigen::MatrixXf& input, const int num_frames)
     // and the single sparse GEMM approach is faster.
     for (size_t k = 0; k < this->_weight.size(); k++)
     {
-      const long offset = this->_dilation * (k + 1 - (long)this->_weight.size());
+      const long offset =
+        this->_dilation * (static_cast<long>(k) + 1 - static_cast<long>(this->_weight.size()));
       const long lookback = -offset;
       auto input_block = _input_buffer.Read(num_frames, lookback);
       _output.leftCols(num_frames).noalias() += this->_weight[k] * input_block;
@@ -783,7 +784,7 @@ void Conv1D::process_(const Eigen::MatrixXf& input, Eigen::MatrixXf& output, con
     const size_t kernel_size = this->_depthwise_weight.size();
     for (size_t k = 0; k < kernel_size; k++)
     {
-      const long offset = this->_dilation * (k + 1 - (long)kernel_size);
+      const long offset = this->_dilation * (static_cast<long>(k) + 1 - static_cast<long>(kernel_size));
       if (k == 0)
         output.middleCols(j_start, ncols).noalias() =
           this->_depthwise_weight[k].asDiagonal() * input.middleCols(i_start + offset, ncols);
@@ -801,7 +802,8 @@ void Conv1D::process_(const Eigen::MatrixXf& input, Eigen::MatrixXf& output, con
     // and the single sparse GEMM approach is faster.
     for (size_t k = 0; k < this->_weight.size(); k++)
     {
-      const long offset = this->_dilation * (k + 1 - this->_weight.size());
+      const long offset =
+        this->_dilation * (static_cast<long>(k) + 1 - static_cast<long>(this->_weight.size()));
       if (k == 0)
         output.middleCols(j_start, ncols).noalias() = this->_weight[k] * input.middleCols(i_start + offset, ncols);
       else
@@ -818,37 +820,38 @@ long Conv1D::get_in_channels() const
 {
   if (this->_is_depthwise)
     return this->_channels;
-  return this->_weight.size() > 0 ? this->_weight[0].cols() : 0;
+  return this->_weight.size() > 0 ? static_cast<long>(this->_weight[0].cols()) : 0;
 }
 
 long Conv1D::get_out_channels() const
 {
   if (this->_is_depthwise)
     return this->_channels;
-  return this->_weight.size() > 0 ? this->_weight[0].rows() : 0;
+  return this->_weight.size() > 0 ? static_cast<long>(this->_weight[0].rows()) : 0;
 }
 
 long Conv1D::get_kernel_size() const
 {
   if (this->_is_depthwise)
-    return this->_depthwise_weight.size();
-  return this->_weight.size();
+    return static_cast<long>(this->_depthwise_weight.size());
+  return static_cast<long>(this->_weight.size());
 }
 
 long Conv1D::get_num_weights() const
 {
-  long num_weights = this->_bias.size();
+  long num_weights = static_cast<long>(this->_bias.size());
   if (this->_is_depthwise)
   {
     // Depthwise: one weight per channel per kernel tap
-    num_weights += this->_channels * this->_depthwise_weight.size();
+    num_weights += this->_channels * static_cast<long>(this->_depthwise_weight.size());
   }
   else if (this->_weight.size() > 0)
   {
-    const long out_channels = this->_weight[0].rows();
-    const long in_channels = this->_weight[0].cols();
+    const Eigen::Index out_channels = this->_weight[0].rows();
+    const Eigen::Index in_channels = this->_weight[0].cols();
     // For grouped convolutions, the number of weights is reduced by numGroups
-    num_weights += (out_channels * in_channels * this->_weight.size()) / this->_num_groups;
+    num_weights += static_cast<long>(
+      (out_channels * in_channels * static_cast<Eigen::Index>(this->_weight.size())) / this->_num_groups);
   }
   return num_weights;
 }
