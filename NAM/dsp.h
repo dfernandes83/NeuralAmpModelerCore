@@ -114,7 +114,7 @@ public:
   /// You should call HasInputLevel() first to be safe.
   /// Note: input level is assumed global over all inputs.
   /// \return Input level in dBu
-  double GetInputLevel();
+  double GetInputLevel() const;
 
   /// \brief Get how loud this model's output is, in dB, if a "typical" input is processed.
   /// This can be used to normalize the output level of the object.
@@ -131,13 +131,13 @@ public:
   /// You should call HasOutputLevel() first to be safe.
   /// Note: output level is assumed global over all outputs.
   /// \return Output level in dBu
-  double GetOutputLevel();
+  double GetOutputLevel() const;
 
   /// \brief Check if this model knows its input level
   ///
   /// Note: input level is assumed global over all inputs.
   /// \return true if input level is known, false otherwise
-  bool HasInputLevel();
+  bool HasInputLevel() const;
 
   /// \brief Check if the model knows how loud it is
   /// \return true if loudness is known, false otherwise
@@ -147,7 +147,7 @@ public:
   ///
   /// Note: output level is assumed global over all outputs.
   /// \return true if output level is known, false otherwise
-  bool HasOutputLevel();
+  bool HasOutputLevel() const;
 
   /// \brief Get how many samples should be processed for the model to be considered "warmed up"
   ///

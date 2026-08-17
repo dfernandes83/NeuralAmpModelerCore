@@ -74,6 +74,22 @@ void test_get_output_level()
   assert(actual == expected);
 }
 
+void test_metadata_is_const_accessible()
+{
+  nam::DSP mutableDsp(1, 1, 48000.0);
+  mutableDsp.SetInputLevel(19.0);
+  mutableDsp.SetOutputLevel(12.0);
+  mutableDsp.SetLoudness(-18.0);
+
+  const nam::DSP& dsp = mutableDsp;
+  assert(dsp.HasInputLevel());
+  assert(dsp.GetInputLevel() == 19.0);
+  assert(dsp.HasOutputLevel());
+  assert(dsp.GetOutputLevel() == 12.0);
+  assert(dsp.HasLoudness());
+  assert(dsp.GetLoudness() == -18.0);
+}
+
 // Test correct function of DSP::HasInputLevel()
 void test_has_input_level()
 {

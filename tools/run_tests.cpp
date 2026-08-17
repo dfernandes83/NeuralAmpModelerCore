@@ -86,6 +86,7 @@ int main()
   test_dsp::test_construct();
   test_dsp::test_get_input_level();
   test_dsp::test_get_output_level();
+  test_dsp::test_metadata_is_const_accessible();
   test_dsp::test_has_input_level();
   test_dsp::test_has_output_level();
   test_dsp::test_set_input_level();

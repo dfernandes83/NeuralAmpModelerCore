@@ -217,22 +217,22 @@ void nam::DSP::SetMaxBufferSize(const int maxBufferSize)
   mMaxBufferSize = maxBufferSize;
 }
 
-double nam::DSP::GetInputLevel()
+double nam::DSP::GetInputLevel() const
 {
   return mInputLevel.level;
 }
 
-double nam::DSP::GetOutputLevel()
+double nam::DSP::GetOutputLevel() const
 {
   return mOutputLevel.level;
 }
 
-bool nam::DSP::HasInputLevel()
+bool nam::DSP::HasInputLevel() const
 {
   return mInputLevel.haveLevel;
 }
 
-bool nam::DSP::HasOutputLevel()
+bool nam::DSP::HasOutputLevel() const
 {
   return mOutputLevel.haveLevel;
 }
