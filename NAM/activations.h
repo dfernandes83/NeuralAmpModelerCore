@@ -123,6 +123,7 @@ inline float softsign(float x)
 class Activation
 {
 public:
+  // Type alias for shared pointer to Activation
   using Ptr = std::shared_ptr<Activation>;
 
   Activation() = default;
@@ -130,15 +131,23 @@ public:
   virtual void apply(Eigen::MatrixXf& matrix) { apply(matrix.data(), matrix.rows() * matrix.cols()); }
   virtual void apply(Eigen::Block<Eigen::MatrixXf> block)
   {
+    // Block must be contiguous in memory (outerStride == rows) for flat data() access.
+    // Non-contiguous blocks (e.g. topRows() of a wider matrix) would read/write wrong elements.
     assert(block.outerStride() == block.rows());
     apply(block.data(), block.rows() * block.cols());
   }
   virtual void apply(Eigen::Block<Eigen::MatrixXf, -1, -1, true> block)
   {
+    // Inner-panel blocks (e.g. leftCols()) are always contiguous for column-major matrices,
+    // but assert anyway for safety.
     assert(block.outerStride() == block.rows());
     apply(block.data(), block.rows() * block.cols());
   }
   virtual void apply(float* data, Eigen::Index size) = 0;
+
+  /// \brief Look up a named activation singleton.
+  ///
+  /// Construction-time only (called from LSTM/ConvNet/WaveNet layer constructors while a model
   /// is being staged) -- never called from the real-time process() path of any architecture in
   /// this codebase, so the mutex this and the setters below take is never touched by the audio
   /// thread.
