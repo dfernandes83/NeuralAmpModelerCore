@@ -38,6 +38,9 @@ namespace wavenet
 class WaveNet;
 } // namespace wavenet
 
+/// Forward declaration for the typed Slim capability accessor (DSP::AsSlimmable()).
+class SlimmableModel;
+
 /// \brief Temporarily change the thread-local prewarm-on-reset default for newly constructed DSP objects
 ///
 /// Existing DSP objects are not affected. DSP instances constructed while this object is alive on the current thread
@@ -227,6 +230,16 @@ public:
   /// \return Onset latency in samples, at this model's own native (expected) sample rate. 0 if
   ///         no measurable delay was found.
   int GetInherentLatencySamples();
+
+  /// \brief Type-safe capability query for models that support dynamic size reduction (Slim).
+  ///
+  /// Returns a non-null pointer only for DSP subclasses that also implement SlimmableModel via
+  /// multiple inheritance (e.g. ContainerModel, wavenet::SlimmableWavenet). Replaces RTTI-based
+  /// dynamic_cast probing with a typed virtual accessor.
+  /// \return Pointer to this object's SlimmableModel interface, or nullptr if unsupported.
+  virtual SlimmableModel* AsSlimmable() { return nullptr; }
+  /// \copydoc AsSlimmable()
+  virtual const SlimmableModel* AsSlimmable() const { return nullptr; }
 
 protected:
   friend class wavenet::WaveNet; // Allow WaveNet to access protected members. Used in condition DSP.

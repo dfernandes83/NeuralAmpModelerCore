@@ -41,6 +41,8 @@ public:
   void SetSlimmableSize(const double val) override;
   std::vector<double> GetSlimmableSizeBreakpoints() const override;
   int GetPrewarmSamples() override;
+  SlimmableModel* AsSlimmable() override { return this; }
+  const SlimmableModel* AsSlimmable() const override { return this; }
 
 private:
   size_t _get_index_for_slimmable_size(const double val) const;
