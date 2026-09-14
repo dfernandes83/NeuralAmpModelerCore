@@ -35,6 +35,7 @@
 #include "test/test_noncontiguous_blocks.cpp"
 #include "test/test_extensible.cpp"
 #include "test/test_container.cpp"
+#include "test/test_sequential.cpp"
 #include "test/test_render_slim.cpp"
 #include "test/test_slimmable_wavenet.cpp"
 #include "test/test_a2_fast.cpp"
@@ -100,6 +101,8 @@ int main()
   test_linear::test_direct_known_values();
   test_linear::test_fft_matches_direct_irregular_chunks();
   test_linear::test_auto_selection();
+  test_linear::test_fft_dispatch_table();
+  test_linear::test_fft_impulse_response_across_dispatch_sizes();
   test_linear::test_parse_implementation();
   test_linear::test_direct_process_realtime_safe();
   test_linear::test_fft_process_realtime_safe();
@@ -208,6 +211,7 @@ int main()
   test_wavenet::test_layer1x1::test_layer1x1_inactive();
   test_wavenet::test_layer1x1::test_layer1x1_inactive_bottleneck_mismatch();
   test_wavenet::test_layer1x1::test_layer1x1_post_film_active();
+  test_wavenet::test_layer1x1::test_layer1x1_post_film_is_applied_for_every_gating_mode();
   test_wavenet::test_layer1x1::test_layer1x1_post_film_inactive_with_layer1x1_inactive();
   test_wavenet::test_layer1x1::test_layer1x1_gated();
   test_wavenet::test_layer1x1::test_layer1x1_groups();
@@ -342,6 +346,21 @@ int main()
   test_container::test_container_default_is_max_size();
   test_container::test_container_reset_only_resets_active_submodel();
   test_container::test_container_switch_resets_before_activation();
+
+  // Sequential tests
+  test_sequential::test_sequential_loads_canonical_container_envelope();
+  test_sequential::test_sequential_loads_from_file_path();
+  test_sequential::test_sequential_process_matches_manual_series();
+  test_sequential::test_sequential_process_is_realtime_safe_after_warmup();
+  test_sequential::test_sequential_rejects_blocks_larger_than_reset_maximum();
+  test_sequential::test_sequential_rejects_lowercase_architecture();
+  test_sequential::test_sequential_accepts_nested_sequential_child();
+  test_sequential::test_sequential_rejects_empty_models();
+  test_sequential::test_sequential_rejects_nonempty_top_level_weights();
+  test_sequential::test_sequential_rejects_legacy_bare_child_configs();
+  test_sequential::test_sequential_rejects_sample_rate_mismatch();
+  test_sequential::test_sequential_rejects_top_level_sample_rate_mismatch();
+  test_sequential::test_sequential_rejects_channel_mismatch();
 
   // Render --slim tests
   test_render_slim::test_slim_changes_output();

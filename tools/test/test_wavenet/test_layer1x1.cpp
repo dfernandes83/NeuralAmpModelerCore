@@ -20,20 +20,19 @@ static nam::wavenet::_FiLMParams make_default_film_params()
 }
 
 // Helper function to create a Layer with default FiLM parameters
-static nam::wavenet::detail::Layer make_layer(const int condition_size, const int channels, const int bottleneck,
-                                              const int kernel_size, const int dilation,
-                                              const nam::activations::ActivationConfig& activation_config,
-                                              const nam::wavenet::GatingMode gating_mode, const int groups_input,
-                                              const int groups_input_mixin,
-                                              const nam::wavenet::Layer1x1Params& layer1x1_params,
-                                              const nam::wavenet::Head1x1Params& head1x1_params,
-                                              const nam::activations::ActivationConfig& secondary_activation_config)
+static nam::wavenet::detail::Layer make_layer(
+  const int condition_size, const int channels, const int bottleneck, const int kernel_size, const int dilation,
+  const nam::activations::ActivationConfig& activation_config, const nam::wavenet::GatingMode gating_mode,
+  const int groups_input, const int groups_input_mixin, const nam::wavenet::Layer1x1Params& layer1x1_params,
+  const nam::wavenet::Head1x1Params& head1x1_params,
+  const nam::activations::ActivationConfig& secondary_activation_config,
+  const nam::wavenet::_FiLMParams& layer1x1_post_film_params = make_default_film_params())
 {
   auto film_params = make_default_film_params();
   nam::wavenet::LayerParams layer_params(condition_size, channels, bottleneck, kernel_size, dilation, activation_config,
                                          gating_mode, groups_input, groups_input_mixin, layer1x1_params, head1x1_params,
                                          secondary_activation_config, film_params, film_params, film_params,
-                                         film_params, film_params, film_params, film_params, film_params);
+                                         film_params, film_params, film_params, layer1x1_post_film_params, film_params);
   return nam::wavenet::detail::Layer(layer_params);
 }
 
@@ -254,7 +253,7 @@ void test_layer1x1_post_film_active()
     1.0f, 0.0f, 0.0f, 1.0f, // weights
     0.0f, 0.0f, // bias
     // layer1x1_post_film: (conditionSize, 2*channels) + bias (with shift)
-    1.0f, 1.0f, // scale weights
+    2.0f, 2.0f, // scale weights: condition=1 doubles the layer output
     0.0f, 0.0f, // shift weights
     0.0f, 0.0f, 0.0f, 0.0f // bias
   };
@@ -275,13 +274,82 @@ void test_layer1x1_post_film_active()
 
   auto layer_output = layer.GetOutputNextLayer().leftCols(numFrames);
 
-  // Verify outputs are reasonable (not NaN, not infinite)
+  // The FiLM scales the layer1x1 output by 2: input + (2 * 2) = 5.
   for (int i = 0; i < numFrames; i++)
   {
-    assert(!std::isnan(layer_output(0, i)));
-    assert(!std::isinf(layer_output(0, i)));
-    assert(!std::isnan(layer_output(1, i)));
-    assert(!std::isinf(layer_output(1, i)));
+    assert(std::abs(layer_output(0, i) - 5.0f) < 0.01f);
+    assert(std::abs(layer_output(1, i) - 5.0f) < 0.01f);
+  }
+}
+
+// Runs one layer with the given layer1x1_post_film scale weight and returns its output.
+// Everything else is the identity, so the only thing that can move the output is the FiLM.
+static Eigen::MatrixXf run_layer1x1_post_film(const nam::wavenet::GatingMode gating_mode, const float film_scale_weight)
+{
+  const int conditionSize = 1;
+  const int channels = 2;
+  const int bottleneck = channels;
+  const int kernelSize = 1;
+  const int dilation = 1;
+  const bool gated = gating_mode != nam::wavenet::GatingMode::NONE;
+  const auto activation = nam::activations::ActivationConfig::simple(nam::activations::ActivationType::ReLU);
+  const auto secondary = gated ? nam::activations::ActivationConfig::simple(nam::activations::ActivationType::ReLU)
+                               : nam::activations::ActivationConfig{};
+
+  nam::wavenet::Layer1x1Params layer1x1_params(true, 1);
+  nam::wavenet::Head1x1Params head1x1_params(false, channels, 1);
+  auto film_params = make_default_film_params();
+  nam::wavenet::_FiLMParams layer1x1_post_film_params(true, true, 1);
+  nam::wavenet::LayerParams layer_params(conditionSize, channels, bottleneck, kernelSize, dilation, activation,
+                                         gating_mode, 1, 1, layer1x1_params, head1x1_params, secondary, film_params,
+                                         film_params, film_params, film_params, film_params, film_params,
+                                         layer1x1_post_film_params, film_params);
+  auto layer = nam::wavenet::detail::Layer(layer_params);
+
+  const int conv_out = gated ? 2 * bottleneck : bottleneck;
+  std::vector<float> weights;
+  for (int i = 0; i < channels * conv_out; i++) // conv weights: identity-ish, all ones
+    weights.push_back(1.0f);
+  for (int i = 0; i < conv_out; i++) // conv bias
+    weights.push_back(0.0f);
+  for (int i = 0; i < conditionSize * conv_out; i++) // input mixin
+    weights.push_back(1.0f);
+  for (int i = 0; i < bottleneck * channels; i++) // layer1x1 weights
+    weights.push_back(1.0f);
+  for (int i = 0; i < channels; i++) // layer1x1 bias
+    weights.push_back(0.0f);
+  for (int i = 0; i < conditionSize * channels; i++) // FiLM scale weights
+    weights.push_back(film_scale_weight);
+  for (int i = 0; i < conditionSize * channels; i++) // FiLM shift weights
+    weights.push_back(0.0f);
+  for (int i = 0; i < 2 * channels; i++) // FiLM bias (scale then shift)
+    weights.push_back(0.0f);
+
+  auto it = weights.begin();
+  layer.set_weights_(it);
+  assert(it == weights.end());
+
+  const int numFrames = 2;
+  layer.SetMaxBufferSize(numFrames);
+  Eigen::MatrixXf input(channels, numFrames);
+  Eigen::MatrixXf condition(conditionSize, numFrames);
+  input.fill(1.0f);
+  condition.fill(1.0f);
+  layer.Process(input, condition, numFrames);
+  return layer.GetOutputNextLayer().leftCols(numFrames);
+}
+
+// layer1x1_post_film used to be applied only under BLENDED gating, silently ignored otherwise,
+// which diverges from the Python model. Changing its scale must move the output in every mode.
+void test_layer1x1_post_film_is_applied_for_every_gating_mode()
+{
+  const nam::wavenet::GatingMode modes[] = {
+    nam::wavenet::GatingMode::NONE, nam::wavenet::GatingMode::GATED, nam::wavenet::GatingMode::BLENDED};
+  for (const auto mode : modes)
+  {
+    const auto unit_scale = run_layer1x1_post_film(mode, 1.0f);
+    const auto doubled_scale = run_layer1x1_post_film(mode, 2.0f);
+    assert(!unit_scale.isApprox(doubled_scale));
   }
 }
 
@@ -345,7 +413,8 @@ void test_layer1x1_gated()
   nam::wavenet::Head1x1Params head1x1_params(false, channels, 1);
   auto sigmoid_config = nam::activations::ActivationConfig::simple(nam::activations::ActivationType::Sigmoid);
   auto layer = make_layer(conditionSize, channels, bottleneck, kernelSize, dilation, activation, gating_mode,
-                          groups_input, groups_input_mixin, layer1x1_params, head1x1_params, sigmoid_config);
+                          groups_input, groups_input_mixin, layer1x1_params, head1x1_params, sigmoid_config,
+                          nam::wavenet::_FiLMParams(true, true, 1));
 
   // With gated: conv outputs 2*bottleneck, input_mixin outputs 2*bottleneck, layer1x1 outputs channels
   // With gated=true, bottleneck=channels=2:
@@ -378,6 +447,15 @@ void test_layer1x1_gated()
   weights.push_back(1.0f);
   weights.push_back(0.0f);
   weights.push_back(0.0f);
+  // layer1x1_post_film: (conditionSize, 2*channels) + bias (with shift)
+  weights.push_back(2.0f);
+  weights.push_back(2.0f);
+  weights.push_back(0.0f);
+  weights.push_back(0.0f);
+  weights.push_back(0.0f);
+  weights.push_back(0.0f);
+  weights.push_back(0.0f);
+  weights.push_back(0.0f);
 
   auto it = weights.begin();
   layer.set_weights_(it);
@@ -395,13 +473,12 @@ void test_layer1x1_gated()
 
   auto layer_output = layer.GetOutputNextLayer().leftCols(numFrames);
 
-  // Verify outputs are reasonable
+  // The gated activation is 2 / (1 + exp(-2)); FiLM doubles the layer1x1 result before the residual connection.
+  const float expected_layer_output = 1.0f + 4.0f / (1.0f + std::exp(-2.0f));
   for (int i = 0; i < numFrames; i++)
   {
-    assert(!std::isnan(layer_output(0, i)));
-    assert(!std::isinf(layer_output(0, i)));
-    assert(!std::isnan(layer_output(1, i)));
-    assert(!std::isinf(layer_output(1, i)));
+    assert(std::abs(layer_output(0, i) - expected_layer_output) < 0.01f);
+    assert(std::abs(layer_output(1, i) - expected_layer_output) < 0.01f);
   }
 }
 
