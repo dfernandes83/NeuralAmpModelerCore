@@ -14,6 +14,11 @@ public:
   using std::runtime_error::runtime_error;
 };
 
+/// \brief Validate an already-parsed JSON model configuration
+/// \param config The JSON configuration object
+/// \throws NamFileValidationError If the JSON is not an object or does not contain the minimum required fields
+void validate_nam_json(const nlohmann::json& config);
+
 /// \brief Parse and validate a .nam file
 /// \param filename Path to the .nam file
 /// \return The parsed model configuration

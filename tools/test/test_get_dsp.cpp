@@ -448,4 +448,20 @@ void test_get_dsp_with_returned_config_constructs_once()
   assert(gConstructorResetConstructCount == 1);
   assert(returned_config.architecture == kConstructorResetArchitecture);
 }
+
+void test_get_dsp_rejects_non_nam_json_without_abort()
+{
+  const nlohmann::json not_a_nam = nlohmann::json::parse(R"({"hello": "world", "settings": 123})");
+  bool caught = false;
+  try
+  {
+    auto dsp = nam::get_dsp(not_a_nam);
+  }
+  catch (const nam::NamFileValidationError&)
+  {
+    caught = true;
+  }
+  assert(caught && "get_dsp on non-NAM JSON must throw NamFileValidationError without aborting");
+}
 }; // namespace test_get_dsp
+

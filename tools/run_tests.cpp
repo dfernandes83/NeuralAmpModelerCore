@@ -321,6 +321,7 @@ int main()
   test_get_dsp::test_get_dsp_prewarm_option_suppresses_constructor_reset_prewarm();
   test_get_dsp::test_get_dsp_prewarm_option_forces_constructor_reset_prewarm();
   test_get_dsp::test_get_dsp_with_returned_config_constructs_once();
+  test_get_dsp::test_get_dsp_rejects_non_nam_json_without_abort();
 
   test_nam_file::test_accepts_minimum_valid_file();
   test_nam_file::test_rejects_non_object_json();

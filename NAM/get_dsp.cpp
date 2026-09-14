@@ -152,6 +152,8 @@ std::vector<float> GetWeights(nlohmann::json const& j)
 
 void populate_dsp_data(const nlohmann::json& config, dspData& returnedConfig)
 {
+  validate_nam_json(config);
+
   verify_config_version(config["version"].get<std::string>());
 
   nlohmann::json config_json = config["config"];
