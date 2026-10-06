@@ -24,6 +24,7 @@
 #include "test/test_wavenet/test_layer_head_config.cpp"
 #include "test/test_wavenet/test_layer1x1.cpp"
 #include "test/test_wavenet/test_factory.cpp"
+#include "test/test_wavenet/test_oversized_blocks.cpp"
 #include "test/test_gating_activations.cpp"
 #include "test/test_wavenet_gating_compatibility.cpp"
 #include "test/test_blending_detailed.cpp"
@@ -72,6 +73,7 @@ int main()
 
   test_activations_realtime_safe::test_prelu_apply_matrix_realtime_safe();
   test_activations_realtime_safe::test_prelu_apply_pointer_realtime_safe();
+  test_activations_realtime_safe::test_hardtanh_bounds_apply_realtime_safe();
 
   // Typed ActivationConfig tests
   test_activations::TestTypedActivationConfig::test_simple_config();
@@ -80,10 +82,13 @@ int main()
   test_activations::TestTypedActivationConfig::test_prelu_single_slope_config();
   test_activations::TestTypedActivationConfig::test_prelu_multi_slope_config();
   test_activations::TestTypedActivationConfig::test_leaky_hardtanh_config();
+  test_activations::TestTypedActivationConfig::test_hardtanh_config();
   test_activations::TestTypedActivationConfig::test_softsign_config();
   test_activations::TestTypedActivationConfig::test_from_json_string();
   test_activations::TestTypedActivationConfig::test_from_json_object();
   test_activations::TestTypedActivationConfig::test_from_json_prelu_multi();
+  test_activations::TestTypedActivationConfig::test_from_json_hardtanh_bounds();
+  test_activations::TestTypedActivationConfig::test_from_json_hardtanh_default();
   test_activations::TestTypedActivationConfig::test_from_json_softsign_string();
   test_activations::TestTypedActivationConfig::test_from_json_softsign_object();
   test_activations::TestTypedActivationConfig::test_unknown_activation_throws();
@@ -221,6 +226,8 @@ int main()
   test_wavenet::test_head1x1::test_head1x1_different_out_channels();
   test_wavenet::test_layer1x1::test_layer1x1_active();
   test_wavenet::test_layer1x1::test_layer1x1_inactive();
+  test_wavenet::test_layer1x1::test_layer1x1_inactive_gated();
+  test_wavenet::test_layer1x1::test_layer1x1_inactive_full_model();
   test_wavenet::test_layer1x1::test_layer1x1_inactive_bottleneck_mismatch();
   test_wavenet::test_layer1x1::test_layer1x1_post_film_active();
   test_wavenet::test_layer1x1::test_layer1x1_post_film_is_applied_for_every_gating_mode();
@@ -246,6 +253,7 @@ int main()
   test_wavenet::test_process_3in_2out_realtime_safe();
   test_wavenet::test_condition_processing::test_with_condition_dsp();
   test_wavenet::test_condition_processing::test_with_condition_dsp_multichannel();
+  test_wavenet::test_oversized_blocks::test_oversized_call_matches_consecutive_calls();
 
   test_convnet::test_convnet_basic();
   test_convnet::test_convnet_batchnorm();
