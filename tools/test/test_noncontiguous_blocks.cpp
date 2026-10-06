@@ -56,7 +56,7 @@ void test_conv1x1_process_toprows()
   // Create Conv1x1: 4 in -> 4 out, identity weights
   nam::Conv1x1 conv(bottleneck, bottleneck, /*bias=*/false);
   auto weights = make_identity_weights(bottleneck, false);
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -98,7 +98,7 @@ void test_conv1x1_process_toprows_with_bias()
   weights.push_back(10.0f);
   weights.push_back(20.0f);
   weights.push_back(30.0f);
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -131,7 +131,7 @@ void test_conv1x1_process_toprows_2x2()
   nam::Conv1x1 conv(bottleneck, bottleneck, /*bias=*/false);
   // Weight: [[2, 0], [0, 3]] (column-major: [2, 0, 0, 3])
   std::vector<float> weights = {2.0f, 0.0f, 0.0f, 3.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -165,7 +165,7 @@ void test_conv1x1_process_toprows_4x4()
 
   nam::Conv1x1 conv(bottleneck, bottleneck, /*bias=*/false);
   auto weights = make_identity_weights(bottleneck, false);
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -199,7 +199,7 @@ void test_conv1x1_toprows_matches_contiguous()
     1.0f, 0.5f, -1.0f, 0.5f, 2.0f, -0.5f, 0.0f, 1.5f, // 2x4 weights (column-major)
     3.0f, -2.0f // biases
   };
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -242,7 +242,7 @@ void test_film_process_toprows_with_shift()
   weights[bias_offset + 3] = 10.0f; // shift[0]
   weights[bias_offset + 4] = -5.0f; // shift[1]
   weights[bias_offset + 5] = 3.0f; // shift[2]
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   const int num_frames = 4;
@@ -290,7 +290,7 @@ void test_film_process_toprows_scale_only()
   weights[bias_offset + 1] = 3.0f;
   weights[bias_offset + 2] = -1.0f;
   weights[bias_offset + 3] = 0.5f;
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   const int num_frames = 3;
@@ -331,7 +331,7 @@ void test_film_toprows_matches_contiguous()
   weights[bias_offset + 3] = 10.0f;
   weights[bias_offset + 4] = -5.0f;
   weights[bias_offset + 5] = 3.0f;
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   Eigen::MatrixXf full_matrix(total_rows, num_frames);
@@ -375,7 +375,7 @@ void test_film_process_inplace_toprows()
   weights[bias_offset + 3] = 10.0f;
   weights[bias_offset + 4] = -5.0f;
   weights[bias_offset + 5] = 3.0f;
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   Eigen::MatrixXf full_matrix(total_rows, num_frames);

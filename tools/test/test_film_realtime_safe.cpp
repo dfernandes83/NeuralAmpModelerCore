@@ -80,7 +80,7 @@ void test_film_process_with_shift_realtime_safe()
   weights[bias_offset + 4] = -20.0f; // shift1
   weights[bias_offset + 5] = 3.0f; // shift2
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   // Test with several different buffer sizes
@@ -133,7 +133,7 @@ void test_film_process_without_shift_realtime_safe()
   weights[bias_offset + 1] = -1.0f; // scale1
   weights[bias_offset + 2] = 0.5f; // scale2
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   // Test with several different buffer sizes
@@ -189,7 +189,7 @@ void test_film_process_inplace_with_shift_realtime_safe()
   weights[bias_offset + 4] = -20.0f; // shift1
   weights[bias_offset + 5] = 3.0f; // shift2
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   // Test with several different buffer sizes
@@ -241,7 +241,7 @@ void test_film_process_inplace_without_shift_realtime_safe()
   weights[bias_offset + 1] = -1.0f; // scale1
   weights[bias_offset + 2] = 0.5f; // scale2
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   // Test with several different buffer sizes
@@ -295,7 +295,7 @@ void test_film_process_large_dimensions_realtime_safe()
     weights[bias_offset + input_dim + i] = 0.5f * i; // shift
   }
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   // Test with several different buffer sizes
@@ -353,7 +353,7 @@ void test_film_process_partial_frames_realtime_safe()
   weights[bias_offset + 4] = -20.0f; // shift1
   weights[bias_offset + 5] = 3.0f; // shift2
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   // Test with buffer smaller than maxBufferSize to verify partial frame processing
@@ -429,7 +429,7 @@ void test_film_process_varying_dimensions_realtime_safe()
       weights[bias_offset + i] = 1.0f + 0.1f * i;
     }
 
-    auto it = weights.begin();
+    nam::util::WeightCursor it(weights);
     film.set_weights_(it);
 
     // Prepare input/condition matrices (allocate before tracking)
@@ -481,7 +481,7 @@ void test_film_process_consecutive_calls_realtime_safe()
   weights[bias_offset + 4] = -20.0f;
   weights[bias_offset + 5] = 3.0f;
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
 
   const int buffer_size = 64;

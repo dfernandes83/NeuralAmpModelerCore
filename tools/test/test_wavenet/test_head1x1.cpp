@@ -71,9 +71,9 @@ void test_head1x1_inactive()
                              1.0f, 0.0f, 0.0f, 1.0f, // weights (identity)
                              0.0f, 0.0f};
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -145,9 +145,9 @@ void test_head1x1_active()
                              0.5f, 0.0f, 0.0f, 0.5f, // weights
                              0.1f, 0.1f};
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -249,9 +249,9 @@ void test_head1x1_gated()
   weights.push_back(0.1f);
   weights.push_back(0.1f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -344,9 +344,9 @@ void test_head1x1_groups()
     // Group 2: (2,2) weights + 2 bias
     1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -422,9 +422,9 @@ void test_head1x1_different_out_channels()
                              0.5f, 0.5f, 0.5f, 0.5f, // weights for output channel 1 (average all input channels)
                              0.1f, 0.1f}; // bias for output channels 0 and 1
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);

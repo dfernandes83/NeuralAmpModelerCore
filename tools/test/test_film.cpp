@@ -58,9 +58,9 @@ void test_process_bias_only()
   weights[bias_offset + 4] = shift1;
   weights[bias_offset + 5] = shift2;
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int num_frames = 4;
   Eigen::MatrixXf input(input_dim, num_frames);
@@ -111,9 +111,9 @@ void test_process_scale_only()
   weights[bias_offset + 1] = scale1;
   weights[bias_offset + 2] = scale2;
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int num_frames = 4;
   Eigen::MatrixXf input(input_dim, num_frames);
@@ -166,9 +166,9 @@ void test_process_inplace_with_shift()
   weights[bias_offset + 4] = shift1;
   weights[bias_offset + 5] = shift2;
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int num_frames = 4;
   Eigen::MatrixXf input(input_dim, num_frames);
@@ -234,9 +234,9 @@ void test_process_inplace_scale_only()
   weights[bias_offset + 1] = scale1;
   weights[bias_offset + 2] = scale2;
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int num_frames = 4;
   Eigen::MatrixXf input(input_dim, num_frames);
@@ -307,9 +307,9 @@ void test_process_inplace_partial_frames()
   weights[bias_offset + 4] = shift1;
   weights[bias_offset + 5] = shift2;
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   // Create input with more columns than num_frames
   const int total_cols = 8;
@@ -389,9 +389,9 @@ void test_process_with_groups()
   weights[bias_offset + 6] = 5.0f; // shift[2] (from group 1)
   weights[bias_offset + 7] = -15.0f; // shift[3] (from group 1)
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int num_frames = 3;
   Eigen::MatrixXf input(input_dim, num_frames);
@@ -449,9 +449,9 @@ void test_process_with_groups_scale_only()
   weights[bias_offset + 2] = 0.5f; // scale[2]
   weights[bias_offset + 3] = 3.0f; // scale[3]
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   film.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int num_frames = 2;
   Eigen::MatrixXf input(input_dim, num_frames);

@@ -43,7 +43,7 @@ void test_process_underscore_matches_reference(const int in_channels, const int 
       weights.push_back(value);
   }
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -150,7 +150,7 @@ void test_process_basic()
   // [3.0, 4.0]
   // [5.0, 6.0]
   std::vector<float> weights{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -189,7 +189,7 @@ void test_process_with_bias()
   // [0.0, 1.0]
   // Bias: [10.0, 20.0]
   std::vector<float> weights{1.0f, 0.0f, 0.0f, 1.0f, 10.0f, 20.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -218,7 +218,7 @@ void test_process_underscore()
 
   // Set weights: 2x2 identity matrix
   std::vector<float> weights{1.0f, 0.0f, 0.0f, 1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -265,7 +265,7 @@ void test_process_grouped_basic()
   weights.push_back(0.0f); // out[3], in[2]
   weights.push_back(2.0f); // out[3], in[3]
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -324,7 +324,7 @@ void test_process_grouped_with_bias()
   weights.push_back(3.0f);
   weights.push_back(4.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -379,7 +379,7 @@ void test_process_grouped_multiple_groups()
   weights.push_back(0.0f);
   weights.push_back(4.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -439,7 +439,7 @@ void test_process_grouped_channel_isolation()
   weights.push_back(0.0f);
   weights.push_back(1.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -490,7 +490,7 @@ void test_process_underscore_grouped()
   weights.push_back(0.0f);
   weights.push_back(2.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -536,7 +536,7 @@ void test_process_multiple_calls()
   nam::Conv1x1 conv(in_channels, out_channels, do_bias);
   // Identity matrix
   std::vector<float> weights{1.0f, 0.0f, 0.0f, 1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 

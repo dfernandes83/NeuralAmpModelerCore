@@ -48,8 +48,20 @@ else()
 	message(FATAL_ERROR "Unrecognized Platform!")
 endif()
 
+# Eigen and AudioDSPTools are NOT vendored here any more: this checkout lives inside the
+# AbsoluteStereoCollection monorepo, which owns the single copy of each (submodules/eigen and
+# submodules/AudioDSPTools), so the plugins and this library's own tests build against exactly the
+# same Eigen. Override these when building the library outside the monorepo layout.
+set(NAM_EIGEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../eigen" CACHE PATH "Eigen source directory")
+set(NAM_AUDIO_DSP_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../AudioDSPTools" CACHE PATH "AudioDSPTools source directory")
+foreach(_nam_dep_dir NAM_EIGEN_DIR NAM_AUDIO_DSP_TOOLS_DIR)
+	if(NOT EXISTS "${${_nam_dep_dir}}")
+		message(FATAL_ERROR "${_nam_dep_dir} does not exist: ${${_nam_dep_dir}}. Run `git submodule update --init` in the monorepo, or pass -D${_nam_dep_dir}=<path>.")
+	endif()
+endforeach()
+# Only the single-header nlohmann/json is still vendored under Dependencies/.
 set(NAM_DEPS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
-include_directories(SYSTEM "${NAM_DEPS_PATH}/eigen")
+include_directories(SYSTEM "${NAM_EIGEN_DIR}")
 
 # Build the specialized A2 fast-path WaveNet (A2-Full + A2-Lite). When ON,
 # models whose config matches the A2 shape signature are routed to a hand-optimized

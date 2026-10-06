@@ -50,7 +50,7 @@ void test_process_matches_reference(const int in_channels, const int out_channel
       weights.push_back(value);
   }
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
   conv.SetMaxBufferSize(64);
 
@@ -174,7 +174,7 @@ void test_process_basic()
   // With offset calculation: k=0 has offset=-1 (looks at t-1), k=1 has offset=0 (looks at t)
   // So: output = weight[0] * input[t-1] + weight[1] * input[t] = 1.0 * input[t-1] + 2.0 * input[t]
   std::vector<float> weights{1.0f, 2.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -222,7 +222,7 @@ void test_process_with_bias()
   // With offset: k=0 has offset=-1 (looks at t-1), k=1 has offset=0 (looks at t)
   // So: output = weight[0] * input[t-1] + weight[1] * input[t] + bias = 1.0 * input[t-1] + 0.0 * input[t] + 5.0
   std::vector<float> weights{1.0f, 0.0f, 5.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -272,7 +272,7 @@ void test_process_multichannel()
   weights.push_back(1.0f); // out[2], in[0]
   weights.push_back(1.0f); // out[2], in[1]
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -313,7 +313,7 @@ void test_process_dilation()
   // With dilation=2: k=0 has offset=-2 (looks at t-2), k=1 has offset=0 (looks at t)
   // So: output = weight[0] * input[t-2] + weight[1] * input[t] = 1.0 * input[t-2] + 2.0 * input[t]
   std::vector<float> weights{1.0f, 2.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -357,7 +357,7 @@ void test_process_multiple_calls()
   // With offset: k=0 has offset=-1 (looks at t-1), k=1 has offset=0 (looks at t)
   // So: output = weight[0] * input[t-1] + weight[1] * input[t] = input[t-1] + input[t]
   std::vector<float> weights{1.0f, 1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(num_frames);
@@ -398,7 +398,7 @@ void test_get_output_different_sizes()
 
   // Identity weight
   std::vector<float> weights{1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(maxBufferSize);
@@ -432,14 +432,14 @@ void test_set_size_and_weights()
   const int groups = 1;
 
   std::vector<float> weights{1.0f, 2.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_size_and_weights_(in_channels, out_channels, kernel_size, dilation, do_bias, groups, it);
 
   assert(conv.get_in_channels() == in_channels);
   assert(conv.get_out_channels() == out_channels);
   assert(conv.get_kernel_size() == kernel_size);
   assert(conv.get_dilation() == dilation);
-  assert(it == weights.end()); // All weights should be consumed
+  assert(it.AtEnd()); // All weights should be consumed
 }
 
 // Test get_num_weights()
@@ -480,7 +480,7 @@ void test_reset_multiple()
   conv.set_size_(in_channels, out_channels, kernel_size, false, 1);
 
   std::vector<float> weights{1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   // Reset with different buffer sizes
@@ -528,7 +528,7 @@ void test_process_grouped_basic()
   weights.push_back(0.0f); // out[3], in[2]
   weights.push_back(2.0f); // out[3], in[3]
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -592,7 +592,7 @@ void test_process_grouped_with_bias()
   weights.push_back(3.0f);
   weights.push_back(4.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -652,7 +652,7 @@ void test_process_grouped_multiple_groups()
   weights.push_back(0.0f);
   weights.push_back(4.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -725,7 +725,7 @@ void test_process_grouped_kernel_size()
   weights.push_back(3.0f); // kernel[0], out[3], in[3]
   weights.push_back(4.0f); // kernel[1], out[3], in[3]
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -802,7 +802,7 @@ void test_process_grouped_dilation()
   weights.push_back(0.0f);
   weights.push_back(4.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);
@@ -869,7 +869,7 @@ void test_process_grouped_channel_isolation()
   weights.push_back(0.0f);
   weights.push_back(3.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   conv.SetMaxBufferSize(64);

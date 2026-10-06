@@ -8,11 +8,11 @@ set(TOOLS benchmodel)
 add_custom_target(tools ALL
 	DEPENDS ${TOOLS} render)
 
-set(AUDIO_DSP_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Dependencies/AudioDSPTools")
+set(AUDIO_DSP_TOOLS_DIR "${NAM_AUDIO_DSP_TOOLS_DIR}")
 set(AUDIO_DSP_TOOLS_WAV_SOURCES "${AUDIO_DSP_TOOLS_DIR}/dsp/wav.cpp")
 
 include_directories(tools ..)
-include_directories(tools ${NAM_DEPS_PATH}/eigen)
+include_directories(tools ${NAM_EIGEN_DIR})
 include_directories(tools ${NAM_DEPS_PATH}/nlohmann)
 include_directories(tools ${AUDIO_DSP_TOOLS_DIR}/dsp)
 
@@ -33,7 +33,9 @@ endif()
 add_executable(render render.cpp ${NAM_SOURCES} ${AUDIO_DSP_TOOLS_WAV_SOURCES})
 target_compile_features(render PUBLIC cxx_std_20)
 # AudioDSPTools wav.cpp has sign-compare issues; don't fail build
-set_source_files_properties(${AUDIO_DSP_TOOLS_WAV_SOURCES} PROPERTIES COMPILE_FLAGS "-Wno-error")
+if(NOT MSVC)
+	set_source_files_properties(${AUDIO_DSP_TOOLS_WAV_SOURCES} PROPERTIES COMPILE_FLAGS "-Wno-error")
+endif()
 set_target_properties(render PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	INTERPROCEDURAL_OPTIMIZATION TRUE
@@ -184,8 +186,9 @@ else()
 	)
 endif()
 
-# There's an error in eigen's
-# /Users/steve/src/NeuralAmpModelerCore/Dependencies/eigen/Eigen/src/Core/products/GeneralBlockPanelKernel.h
-# Don't let this break my build on debug:
-set_source_files_properties(../NAM/dsp.cpp PROPERTIES COMPILE_FLAGS "-Wno-error")
-set_source_files_properties(../NAM/conv1d.cpp PROPERTIES COMPILE_FLAGS "-Wno-error")
+# Eigen's Core/products/GeneralBlockPanelKernel.h used to emit a warning that broke Debug builds
+# of these two files. -Wno-error is a GCC/Clang flag (cl.exe rejects it as "/Wno-error").
+if(NOT MSVC)
+	set_source_files_properties(../NAM/dsp.cpp PROPERTIES COMPILE_FLAGS "-Wno-error")
+	set_source_files_properties(../NAM/conv1d.cpp PROPERTIES COMPILE_FLAGS "-Wno-error")
+endif()

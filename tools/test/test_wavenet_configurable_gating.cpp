@@ -330,16 +330,16 @@ public:
     }
 
     // Set weights for all layers
-    auto weights_iter = weights.begin();
+    nam::util::WeightCursor weights_iter(weights);
     layer_sigmoid.set_weights_(weights_iter);
 
-    weights_iter = weights.begin();
+    weights_iter = nam::util::WeightCursor(weights);
     layer_tanh.set_weights_(weights_iter);
 
-    weights_iter = weights.begin();
+    weights_iter = nam::util::WeightCursor(weights);
     layer_relu.set_weights_(weights_iter);
 
-    assert(weights_iter == weights.end());
+    assert(weights_iter.AtEnd());
 
     // Create some test input data
     Eigen::MatrixXf input(channels, num_frames);

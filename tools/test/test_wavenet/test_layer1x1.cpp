@@ -74,9 +74,9 @@ void test_layer1x1_active()
     0.0f, 0.0f // bias
   };
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -140,9 +140,9 @@ void test_layer1x1_inactive()
     // No layer1x1 weights since it's inactive
   };
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -194,9 +194,9 @@ void test_layer1x1_inactive_gated()
     // Input mixin: unused
     0.0f, 0.0f, 0.0f, 0.0f};
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 3;
   layer.SetMaxBufferSize(numFrames);
@@ -366,9 +366,9 @@ void test_layer1x1_post_film_active()
     0.0f, 0.0f, 0.0f, 0.0f // bias
   };
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -433,9 +433,9 @@ static Eigen::MatrixXf run_layer1x1_post_film(const nam::wavenet::GatingMode gat
   for (int i = 0; i < 2 * channels; i++) // FiLM bias (scale then shift)
     weights.push_back(0.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -565,9 +565,9 @@ void test_layer1x1_gated()
   weights.push_back(0.0f);
   weights.push_back(0.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -635,9 +635,9 @@ void test_layer1x1_groups()
     // Group 2: (2,2) weights + 2 bias
     1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);

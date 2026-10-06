@@ -128,10 +128,17 @@ int main(int argc, char* argv[])
 
   std::vector<float> inputAudio;
   double inputSampleRate = 0.0;
-  auto loadResult = dsp::wav::Load(inputPath, inputAudio, inputSampleRate);
+  int inputChannels = 0;
+  auto loadResult = dsp::wav::Load(inputPath, inputAudio, inputSampleRate, inputChannels);
   if (loadResult != dsp::wav::LoadReturnCode::SUCCESS)
   {
     std::cerr << "Failed to load input WAV: " << dsp::wav::GetMsgForLoadReturnCode(loadResult) << "\n";
+    return 1;
+  }
+  // AudioDSPTools' loader also accepts stereo (interleaved); this tool renders a single channel.
+  if (inputChannels != 1)
+  {
+    std::cerr << "Failed to load input WAV: expected a mono file, got " << inputChannels << " channels\n";
     return 1;
   }
 

@@ -66,9 +66,9 @@ void test_gated()
     // This should give us a nice zero if the input & condition are the same, so that'll sigmoid to 0.5 for the
     // gate.
     1.0f, 0.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const long numFrames = 4;
   layer.SetMaxBufferSize(numFrames);
@@ -169,9 +169,9 @@ void test_non_gated_layer()
                              // 1x1: weight=1.0, bias=0.0
                              1.0f, 0.0f};
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 4;
   layer.SetMaxBufferSize(numFrames);
@@ -229,7 +229,7 @@ void test_layer_activations()
     auto layer = make_layer(conditionSize, channels, bottleneck, kernelSize, dilation, tanh_config, gating_mode,
                             groups_input, groups_input_mixin, groups_1x1, head1x1_params, empty_config);
     std::vector<float> weights{1.0f, 0.0f, 1.0f, 1.0f, 0.0f};
-    auto it = weights.begin();
+    nam::util::WeightCursor it(weights);
     layer.set_weights_(it);
 
     const int numFrames = 2;
@@ -301,9 +301,9 @@ void test_layer_multichannel()
   // 1x1 bias: zeros
   weights.insert(weights.end(), {0.0f, 0.0f, 0.0f});
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   Eigen::MatrixXf input(channels, numFrames);
   Eigen::MatrixXf condition(conditionSize, numFrames);
@@ -375,9 +375,9 @@ void test_layer_bottleneck()
   // 1x1 bias: channels values
   weights.insert(weights.end(), {0.0f, 0.0f, 0.0f, 0.0f});
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);
@@ -454,9 +454,9 @@ void test_layer_bottleneck_gated()
   // 1x1 bias: channels = 4 values
   weights.insert(weights.end(), {0.0f, 0.0f, 0.0f, 0.0f});
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int numFrames = 2;
   layer.SetMaxBufferSize(numFrames);

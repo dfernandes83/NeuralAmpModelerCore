@@ -168,7 +168,7 @@ void test_conv1d_process_realtime_safe()
 
   // Set weights: simple identity
   std::vector<float> weights{1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   const int maxBufferSize = 256;
@@ -244,7 +244,7 @@ void test_conv1d_grouped_process_realtime_safe()
   weights.push_back(0.3f);
   weights.push_back(0.4f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   const int maxBufferSize = 256;
@@ -308,7 +308,7 @@ void test_conv1d_grouped_dilated_process_realtime_safe()
     weights.push_back(1.0f);
   }
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   conv.set_weights_(it);
 
   const int maxBufferSize = 256;
@@ -365,7 +365,7 @@ void test_layer_process_realtime_safe()
   std::vector<float> weights{1.0f, 0.0f, // Conv (weight, bias)
                              1.0f, // Input mixin
                              1.0f, 0.0f}; // 1x1 (weight, bias)
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
 
   const int maxBufferSize = 256;
@@ -451,7 +451,7 @@ void test_layer_bottleneck_process_realtime_safe()
   // 1x1 bias: channels values
   weights.insert(weights.end(), {0.0f, 0.0f, 0.0f, 0.0f});
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
 
   const int maxBufferSize = 256;
@@ -562,7 +562,7 @@ void test_layer_grouped_process_realtime_safe()
   weights.push_back(0.0f);
   weights.push_back(0.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
 
   const int maxBufferSize = 256;
@@ -653,9 +653,9 @@ static void test_layer_all_films_realtime_safe_impl(const bool shift)
     }
   }
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int maxBufferSize = 256;
   layer.SetMaxBufferSize(maxBufferSize);
@@ -771,9 +771,9 @@ void test_layer_post_activation_film_gated_realtime_safe()
   weights.push_back(1.0f); // scale bias
   weights.push_back(0.0f); // shift bias
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int maxBufferSize = 256;
   layer.SetMaxBufferSize(maxBufferSize);
@@ -878,9 +878,9 @@ void test_layer_post_activation_film_blended_realtime_safe()
   weights.push_back(1.0f); // scale bias
   weights.push_back(0.0f); // shift bias
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   const int maxBufferSize = 256;
   layer.SetMaxBufferSize(maxBufferSize);
@@ -945,7 +945,7 @@ void test_layer_array_process_realtime_safe()
                              1.0f, // Layer: input_mixin
                              1.0f, 0.0f, // Layer: 1x1
                              1.0f}; // Head rechannel
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer_array.set_weights_(it);
 
   const int maxBufferSize = 256;

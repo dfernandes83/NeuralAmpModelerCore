@@ -82,9 +82,9 @@ void test_layer_array_basic()
   // Head rechannel
   weights.push_back(1.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer_array.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   Eigen::MatrixXf layer_inputs(input_size, numFrames);
   Eigen::MatrixXf condition(condition_size, numFrames);
@@ -160,7 +160,7 @@ void test_layer_array_with_head_input()
   layer_array.SetMaxBufferSize(numFrames);
 
   std::vector<float> weights{1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer_array.set_weights_(it);
 
   Eigen::MatrixXf layer_inputs(input_size, numFrames);
@@ -252,9 +252,9 @@ void test_layer_array_different_activations()
   // Head rechannel
   weights.push_back(1.0f);
 
-  auto it = weights.begin();
+  nam::util::WeightCursor it(weights);
   layer_array.set_weights_(it);
-  assert(it == weights.end());
+  assert(it.AtEnd());
 
   // Test with positive input values to verify all activations work
   Eigen::MatrixXf layer_inputs(input_size, numFrames);
@@ -319,7 +319,7 @@ void test_layer_array_different_activations()
   weights_all_none.insert(weights_all_none.end(), {1.0f, 0.0f, 1.0f, 1.0f, 0.0f}); // Layer 2
   weights_all_none.push_back(1.0f); // Head rechannel
 
-  auto it_all_none = weights_all_none.begin();
+  nam::util::WeightCursor it_all_none(weights_all_none);
   layer_array_all_relu.set_weights_(it_all_none);
 
   // Process with same positive input
